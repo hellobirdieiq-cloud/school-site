@@ -1,0 +1,445 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="color-scheme" content="dark">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Flashcard Test</title>
+<style>
+  :root{
+    --ink:#eef1f8; --paper:#0f1626; --line:#2c3852; --soft:#1a2338;
+    --go:#4fd68a; --go-bg:#153826; --no:#ff7b72; --no-bg:#3a1c1c; --mark:#ffd23f;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;background:var(--paper);color:var(--ink);
+    font-family:ui-rounded,"SF Pro Rounded","Nunito","Segoe UI",system-ui,sans-serif;font-size:18px;line-height:1.4}
+  main{max-width:720px;margin:0 auto;padding:24px 18px 60px}
+  h1{font-size:34px;margin:0 0 6px;letter-spacing:-.01em}
+  h2{font-size:22px;margin:28px 0 10px}
+  p{margin:0 0 12px}
+  button{font:inherit;color:var(--ink);background:var(--paper);border:2px solid var(--ink);
+    border-radius:12px;padding:12px 18px;cursor:pointer}
+  button:focus-visible,label:focus-within{outline:3px solid var(--mark);outline-offset:2px}
+  .primary{background:var(--mark);color:#0f1626;border-color:var(--mark);font-size:20px;padding:14px 26px}
+  .primary:disabled{opacity:.4;cursor:not-allowed}
+  .row{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+  .seg button{border-radius:999px;padding:10px 16px}
+  .seg button[aria-pressed="true"]{background:var(--mark);color:#0f1626;border-color:var(--mark)}
+  .cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:8px;margin-top:8px}
+  .cards label{display:flex;gap:10px;align-items:center;padding:10px 12px;border:2px solid var(--line);border-radius:12px;cursor:pointer}
+  .cards label:has(input:checked){border-color:var(--ink);background:var(--soft)}
+  .cards input{width:20px;height:20px;accent-color:var(--ink)}
+  .small{font-size:15px;color:#9aa6c2}
+  .prompt{border-left:10px solid var(--mark);background:var(--soft);padding:18px 20px;border-radius:0 14px 14px 0;
+    font-size:24px;margin:14px 0 20px}
+  .choices{display:grid;gap:10px}
+  .choices button{text-align:left;padding:14px 16px;border-color:var(--line);font-size:19px}
+  .choices button:hover:not(:disabled){border-color:var(--ink)}
+  .choices button.right{background:var(--go-bg);border-color:var(--go)}
+  .choices button.wrong{background:var(--no-bg);border-color:var(--no)}
+  .choices button:disabled{cursor:default}
+  .bar{height:10px;background:var(--line);border-radius:999px;overflow:hidden;margin:6px 0 18px}
+  .bar div{height:100%;background:var(--mark);width:0;transition:width .25s}
+  .verdict{font-size:22px;font-weight:700;margin:16px 0 8px;min-height:30px}
+  .verdict.ok{color:var(--go)} .verdict.bad{color:var(--no)}
+  .score{font-size:56px;font-weight:800;line-height:1;margin:10px 0}
+  .missed{border:2px solid var(--line);border-radius:12px;padding:12px 14px;margin-bottom:8px}
+  .missed b{display:block}
+  .hidden{display:none}
+  .quick{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:12px}
+  .quick button{text-align:left;padding:18px 20px;font-size:22px;font-weight:700;border-color:var(--line)}
+  .quick button small{display:block;font-size:15px;font-weight:400;color:#9aa6c2;margin-top:4px}
+  .quick button:hover{border-color:var(--mark)}
+  select{font:inherit;color:var(--ink);background:var(--soft);border:2px solid var(--line);border-radius:12px;padding:12px 14px;max-width:320px}
+  input[type=text]{font:inherit;color:var(--ink);background:var(--soft);border:2px solid var(--line);border-radius:12px;padding:12px 14px;width:100%;max-width:320px}
+  table{border-collapse:collapse;width:100%;margin-top:8px}
+  th,td{text-align:left;padding:8px 6px;border-bottom:1px solid var(--line);font-size:16px}
+  th{color:#9aa6c2;font-weight:600}
+  .you td{background:var(--soft)}
+</style>
+</head>
+<body>
+<main>
+
+<section id="setup">
+  <h1>Flashcard test</h1>
+
+  <h2>Nickname</h2>
+  <input type="text" id="nameInput" placeholder="Type your nickname" maxlength="20" autocomplete="off">
+
+
+  <h2>Start a quiz</h2>
+  <div class="quick" id="quickDecks"></div>
+  <p class="small">Every word, 4 choices, see the meaning and pick the word.</p>
+
+  <div id="quickSaved" class="hidden">
+    <h2>Saved tests</h2>
+    <div class="quick" id="quickSavedList"></div>
+  </div>
+
+  <p style="margin-top:28px"><button id="adjustBtn" aria-expanded="false">Adjust settings</button></p>
+
+  <div id="advanced" class="hidden">
+  <h2 id="savedTitle">Save a test</h2>
+  <p class="small" id="savedHelp">Set up the deck, test type, choices, and cards below, then save it so you don't have to pick them again.</p>
+  <div class="row" id="pickRow">
+    <select id="savedPick"><option value="">— pick a saved test —</option></select>
+    <button id="loadBtn">Load</button>
+  </div>
+  <p class="small" id="loadedNote"></p>
+  <div class="row" style="margin-top:8px" id="actionRow">
+    <button id="saveNewBtn">Save as new test</button>
+    <button id="updateBtn" class="hidden">Update test</button>
+    <button id="renameBtn" class="hidden">Rename</button>
+    <button id="deleteBtn" class="hidden">Delete</button>
+  </div>
+  <div class="row hidden" style="margin-top:8px" id="nameRow">
+    <input type="text" id="testNameInput" placeholder="Test name" maxlength="40" autocomplete="off">
+    <button class="primary" id="nameOkBtn">Save</button>
+    <button id="nameCancelBtn">Cancel</button>
+  </div>
+  <p class="small" id="nameErr" style="color:var(--no)"></p>
+
+  <h2>Deck</h2>
+  <div class="row seg" id="deckPick"></div>
+
+  <h2>Kind of test</h2>
+  <div class="row seg" id="modePick">
+    <button data-v="def2word" aria-pressed="true">Show meaning, pick the word</button>
+    <button data-v="word2def" aria-pressed="false">Show word, pick the meaning</button>
+  </div>
+
+  <h2>How many choices</h2>
+  <div class="row seg" id="nPick">
+    <button data-v="4" aria-pressed="true">4</button>
+    <button data-v="8" aria-pressed="false">8</button>
+    <button data-v="12" aria-pressed="false">12</button>
+  </div>
+  <p class="small" id="nNote"></p>
+
+  <h2>Cards to test</h2>
+  <div class="row">
+    <button id="allBtn">Select all</button>
+    <button id="noneBtn">Select none</button>
+    <span class="small" id="countNote"></span>
+  </div>
+  <div class="cards" id="cardList"></div>
+
+  <p style="margin-top:24px"><button class="primary" id="startBtn">Start test</button></p>
+  </div>
+</section>
+
+<section id="quiz" class="hidden">
+  <p class="small" id="progressText"></p>
+  <div class="bar"><div id="progressBar"></div></div>
+  <div class="prompt" id="prompt"></div>
+  <div class="choices" id="choices"></div>
+  <div class="verdict" id="verdict"></div>
+  <button class="primary hidden" id="nextBtn">Next</button>
+</section>
+
+<section id="done" class="hidden">
+  <h1 id="doneTitle">All done</h1>
+  <div class="score" id="scoreText"></div>
+  <p id="scoreNote"></p>
+  <div id="missedList"></div>
+  <h2>Scoreboard</h2>
+  <p class="small">Best score for each person on this deck and test type. Saved on this device.</p>
+  <table id="board"></table>
+  <h2>Recent tests</h2>
+  <table id="recent"></table>
+  <p class="row" style="margin-top:20px">
+    <button class="primary" id="retryMissed">Retry the ones I missed</button>
+    <button id="againBtn">Same test again</button>
+    <button id="setupBtn">Back to setup</button>
+  </p>
+</section>
+
+</main>
+<script>
+// ---------- DATA: add decks here ----------
+const DECKS = {
+  "Geography": [
+    ["Region","An area that shares one or more common features that make it different from nearby areas."],
+    ["Social Science","The study of people and how they live."],
+    ["Landscape","All the natural and human-made features that make a place unique."],
+    ["Geography","The study of Earth and the world around us."],
+    ["Meteorology","The study of weather and what causes it."],
+    ["Cartography","The science and art of making maps."],
+    ["Human Geography","The study of people, communities, and how they interact with places."],
+    ["Physical Geography","The study of Earth's natural features, including landforms, bodies of water, climate, soil, and plants."],
+    ["Global Positioning System (GPS)","A satellite system that helps determine and share exact locations."],
+    ["Globe","A round model of the Earth."],
+    ["Map","A flat drawing that shows all or part of Earth's surface."],
+    ["Environment","The land, water, climate, plants, and animals found in an area."],
+    ["Meridians","The imaginary lines of longitude that run from the North Pole to the South Pole."],
+    ["Longitude","The distance east or west of the Prime Meridian."],
+    ["Minutes","A smaller unit of measurement that divides degrees into 60 equal parts."],
+    ["Degrees","A unit used to measure latitude and longitude."],
+    ["Equator","An imaginary line halfway between the North and South Poles that divides Earth into the Northern and Southern Hemispheres."],
+    ["Parallels","The imaginary lines of latitude that run east to west around the Earth."],
+    ["Latitude","The distance north or south of the Equator."],
+    ["Map Projections","Ways of showing the round Earth on a flat map."],
+    ["Continents","The seven large landmasses that make up Earth's surface."],
+    ["Hemispheres","One-half of the Earth. The four hemispheres are Northern, Southern, Eastern, and Western."],
+    ["Prime Meridian","The imaginary line at 0\u00b0 longitude that divides Earth into the Eastern and Western Hemispheres."],
+    ["Grid","A pattern of imaginary north-south and east-west lines used to locate places on Earth."],
+    ["Relative Location","The general location of a place based on where it is compared to other places."],
+    ["Absolute Location","The exact location of a place using a specific address or coordinates."]
+  ],
+  "Science": [
+    ["Science","A way of learning about the natural world through observation and logical reasoning that leads to a body of knowledge. Scire - Know the goal of science."],
+    ["Observing","The process of using one or more of your senses to gather information."],
+    ["Quantitative Observation","An observation that deals with a number or amount."],
+    ["Qualitative Observation","An observation that deals with characteristics that cannot be expressed in numbers."],
+    ["Inferring","The process of making an inference or an interpretation based on observations and prior knowledge."],
+    ["Predicting","The process of forecasting what will happen in the future based on past experience or evidence."],
+    ["Classifying","The process of grouping together items that are alike in some ways."],
+    ["Evaluating","Comparing observation and data to reach a conclusion about them."],
+    ["Making Models","The process of creating representations of complex objects or processes."]
+  ]
+};
+// ---------- END DATA ----------
+
+const $ = id => document.getElementById(id);
+const state = { deck: Object.keys(DECKS)[0], mode: "def2word", n: 4, selected: new Set(), queue: [], i: 0, right: 0, missed: [], name: "" };
+const KEY = "flashcardScores";
+const TKEY = "flashcardTests";
+let loadedTest = null;   // name of the saved test currently loaded, or null
+function loadTests(){ try { return JSON.parse(localStorage.getItem(TKEY)) || {}; } catch(e){ return {}; } }
+function storeTests(t){ localStorage.setItem(TKEY, JSON.stringify(t)); }
+function currentSettings(){ return { deck: state.deck, mode: state.mode, n: state.n, selected: [...state.selected].sort((a,b)=>a-b) }; }
+function refreshSavedList(){
+  const tests = loadTests(), names = Object.keys(tests).sort();
+  const sel = $("savedPick"); const cur = sel.value;
+  sel.innerHTML = '<option value="">— pick a saved test —</option>' +
+    names.map(n => `<option value="${n.replace(/"/g,'&quot;')}">${n}</option>`).join("");
+  sel.value = cur;
+  const any = names.length > 0, has = loadedTest !== null;
+  $("savedTitle").textContent = any ? "Pick a saved test" : "Save a test";
+  $("savedHelp").classList.toggle("hidden", any);
+  $("pickRow").classList.toggle("hidden", !any);
+  ["updateBtn","renameBtn","deleteBtn"].forEach(id => $(id).classList.toggle("hidden", !has));
+  $("deleteBtn").textContent = "Delete";
+  $("loadedNote").textContent = has ? `Loaded: "${loadedTest}". Change anything, then press Update test.` : "";
+  if($("quickSavedList")) syncQuickSaved();
+}
+let nameMode = null; // "new" or "rename"
+function openNameRow(mode, preset){
+  nameMode = mode; $("nameErr").textContent = "";
+  $("testNameInput").value = preset || "";
+  $("nameRow").classList.remove("hidden"); $("actionRow").classList.add("hidden");
+  $("testNameInput").focus();
+}
+function closeNameRow(){ $("nameRow").classList.add("hidden"); $("actionRow").classList.remove("hidden"); nameMode = null; }
+function commitName(){
+  const name = $("testNameInput").value.trim();
+  if(!name){ $("nameErr").textContent = "Type a name first."; return; }
+  const t = loadTests();
+  if(nameMode === "new"){
+    if(t[name]){ $("nameErr").textContent = `"${name}" already exists. Pick another name or load it and use Update test.`; return; }
+    t[name] = currentSettings();
+  } else {
+    if(name !== loadedTest && t[name]){ $("nameErr").textContent = `"${name}" already exists.`; return; }
+    t[name] = t[loadedTest]; if(name !== loadedTest) delete t[loadedTest];
+  }
+  storeTests(t); loadedTest = name; closeNameRow(); refreshSavedList(); $("savedPick").value = name;
+  $("loadedNote").textContent = nameMode === null && name ? `Saved "${name}".` : "";
+  $("loadedNote").textContent = `Saved "${name}".`;
+}
+function syncQuickSaved(){
+  const tests = loadTests(), names = Object.keys(tests).sort();
+  $("quickSaved").classList.toggle("hidden", names.length === 0);
+  const sb = $("quickSavedList"); sb.innerHTML = "";
+  names.forEach(name => {
+    const t = tests[name]; if(!DECKS[t.deck]) return;
+    const b = document.createElement("button");
+    b.innerHTML = `${name}<small>${t.deck} · ${t.selected.length} words · ${t.n} choices · ${MODE_LABEL[t.mode]}</small>`;
+    b.onclick = () => { if(!needName()) return; loadedTest = name; applySettings(t); refreshSavedList(); startTest(state.selected); };
+    sb.appendChild(b);
+  });
+}
+function buildQuick(){
+  const box = $("quickDecks"); box.innerHTML = "";
+  Object.keys(DECKS).forEach(name => {
+    const b = document.createElement("button");
+    b.innerHTML = `${name}<small>${DECKS[name].length} words</small>`;
+    b.onclick = () => { if(!needName()) return; applySettings({deck:name, mode:"def2word", n:4, selected: DECKS[name].map((_,i)=>i)}); loadedTest = null; refreshSavedList(); startTest(state.selected); };
+    box.appendChild(b);
+  });
+  syncQuickSaved();
+}
+function needName(){
+  if(state.name.trim()) return true;
+  $("nameInput").focus(); $("nameInput").placeholder = "Type your nickname first"; $("nameInput").style.borderColor = "var(--no)";
+  return false;
+}
+function pressSeg(id, v){ [...$(id).children].forEach(b => b.setAttribute("aria-pressed", b.dataset.v === String(v))); }
+function applySettings(s){
+  state.deck = s.deck; state.mode = s.mode; state.n = s.n;
+  pressSeg("deckPick", s.deck); pressSeg("modePick", s.mode); pressSeg("nPick", s.n);
+  buildCardList();
+  state.selected = new Set(s.selected.filter(i => i < DECKS[s.deck].length));
+  $("cardList").querySelectorAll("input[type=checkbox]").forEach(c => c.checked = state.selected.has(+c.dataset.i));
+  updateNotes();
+}
+const MODE_LABEL = { def2word: "meaning → word", word2def: "word → meaning" };
+function loadScores(){ try { return JSON.parse(localStorage.getItem(KEY)) || []; } catch(e){ return []; } }
+function saveScore(rec){ const all = loadScores(); all.push(rec); localStorage.setItem(KEY, JSON.stringify(all.slice(-500))); }
+function renderBoards(){
+  const all = loadScores();
+  const same = all.filter(r => r.deck===state.deck && r.mode===state.mode);
+  const best = {};
+  same.forEach(r => { const p = r.right/r.total; if(!best[r.name] || p > best[r.name].pct || (p===best[r.name].pct && r.total>best[r.name].total)) best[r.name] = {pct:p, right:r.right, total:r.total, n:r.n, when:r.when}; });
+  const rows = Object.entries(best).sort((a,b)=>b[1].pct-a[1].pct || b[1].total-a[1].total);
+  $("board").innerHTML = "<tr><th>Name</th><th>Best</th><th>Choices</th><th>When</th></tr>" +
+    (rows.length ? rows.map(([n,b]) => `<tr class="${n===state.name?'you':''}"><td>${n}</td><td>${b.right}/${b.total} (${Math.round(b.pct*100)}%)</td><td>${b.n}</td><td>${new Date(b.when).toLocaleDateString()}</td></tr>`).join("") : "<tr><td colspan=4>No scores yet.</td></tr>");
+  const recent = all.slice(-10).reverse();
+  $("recent").innerHTML = "<tr><th>Name</th><th>Deck</th><th>Test</th><th>Score</th><th>When</th></tr>" +
+    recent.map(r => `<tr><td>${r.name}</td><td>${r.deck}</td><td>${MODE_LABEL[r.mode]}, ${r.n} choices</td><td>${r.right}/${r.total}</td><td>${new Date(r.when).toLocaleString([], {dateStyle:"short", timeStyle:"short"})}</td></tr>`).join("");
+}
+
+function shuffle(a){ for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];} return a; }
+
+function segment(id, onPick){
+  const box = $(id);
+  box.addEventListener("click", e => {
+    const b = e.target.closest("button"); if(!b) return;
+    [...box.children].forEach(x => x.setAttribute("aria-pressed", x===b));
+    onPick(b.dataset.v);
+  });
+}
+
+function buildDeckPicker(){
+  const box = $("deckPick"); box.innerHTML = "";
+  Object.keys(DECKS).forEach((name, k) => {
+    const b = document.createElement("button");
+    b.textContent = `${name} (${DECKS[name].length})`; b.dataset.v = name;
+    b.setAttribute("aria-pressed", k===0); box.appendChild(b);
+  });
+}
+
+function buildCardList(){
+  const box = $("cardList"); box.innerHTML = "";
+  state.selected = new Set(DECKS[state.deck].map((_,i)=>i));
+  DECKS[state.deck].forEach(([word], i) => {
+    const l = document.createElement("label");
+    l.innerHTML = `<input type="checkbox" checked data-i="${i}"><span>${word}</span>`;
+    box.appendChild(l);
+  });
+  box.onchange = e => {
+    const i = +e.target.dataset.i;
+    e.target.checked ? state.selected.add(i) : state.selected.delete(i);
+    updateNotes();
+  };
+  updateNotes();
+}
+
+function updateNotes(){
+  const total = DECKS[state.deck].length, sel = state.selected.size;
+  $("countNote").textContent = `${sel} of ${total} picked`;
+  const usable = Math.min(state.n, total);
+  $("nNote").textContent = usable < state.n
+    ? `This deck only has ${total} cards, so you'll get ${total} choices.`
+    : `Wrong answers come from the whole ${state.deck} deck, so every question has ${state.n} choices.`;
+  $("startBtn").disabled = sel === 0 || state.name.trim() === "";
+}
+
+function startTest(indices){
+  state.queue = shuffle([...indices]); state.i = 0; state.right = 0; state.missed = [];
+  $("setup").classList.add("hidden"); $("done").classList.add("hidden"); $("quiz").classList.remove("hidden");
+  showQuestion();
+}
+
+function showQuestion(){
+  const deck = DECKS[state.deck], idx = state.queue[state.i], card = deck[idx];
+  const askDef = state.mode === "def2word";
+  $("progressText").textContent = `Question ${state.i+1} of ${state.queue.length}`;
+  $("progressBar").style.width = `${(state.i/state.queue.length)*100}%`;
+  $("prompt").textContent = askDef ? card[1] : card[0];
+  $("verdict").textContent = ""; $("verdict").className = "verdict";
+  $("nextBtn").classList.add("hidden");
+
+  const nChoices = Math.min(state.n, deck.length);
+  const others = shuffle(deck.map((_,i)=>i).filter(i=>i!==idx)).slice(0, nChoices-1);
+  const options = shuffle([idx, ...others]);
+  const box = $("choices"); box.innerHTML = "";
+  options.forEach(i => {
+    const b = document.createElement("button");
+    b.textContent = askDef ? deck[i][0] : deck[i][1];
+    b.onclick = () => answer(i, idx, b);
+    box.appendChild(b);
+  });
+}
+
+function answer(picked, correct, btn){
+  const btns = [...$("choices").children];
+  btns.forEach(b => b.disabled = true);
+  const correctBtn = btns.find(b => b.textContent === (state.mode==="def2word" ? DECKS[state.deck][correct][0] : DECKS[state.deck][correct][1]));
+  correctBtn.classList.add("right");
+  if (picked === correct){ state.right++; $("verdict").textContent = "Correct!"; $("verdict").classList.add("ok"); }
+  else { btn.classList.add("wrong"); state.missed.push(correct); $("verdict").textContent = "Not quite. The right one is marked green."; $("verdict").classList.add("bad"); }
+  $("nextBtn").textContent = state.i+1 < state.queue.length ? "Next" : "See my score";
+  $("nextBtn").classList.remove("hidden"); $("nextBtn").focus();
+}
+
+function finish(){
+  $("quiz").classList.add("hidden"); $("done").classList.remove("hidden");
+  const total = state.queue.length, pct = Math.round(state.right/total*100);
+  $("doneTitle").textContent = `All done, ${state.name.trim()}`;
+  $("scoreText").textContent = `${state.right} / ${total}`;
+  $("scoreNote").textContent = pct === 100 ? "Perfect score. Nice work." : `That's ${pct}%. Here's what to go over:`;
+  const box = $("missedList"); box.innerHTML = "";
+  state.missed.forEach(i => {
+    const [w,d] = DECKS[state.deck][i];
+    const div = document.createElement("div"); div.className = "missed";
+    div.innerHTML = `<b>${w}</b>${d}`; box.appendChild(div);
+  });
+  $("retryMissed").classList.toggle("hidden", state.missed.length === 0);
+  saveScore({ name: state.name.trim(), deck: state.deck, mode: state.mode, n: Math.min(state.n, DECKS[state.deck].length), right: state.right, total, when: Date.now() });
+  renderBoards();
+}
+
+// wire up
+state.name = localStorage.getItem("flashcardName") || "";
+$("nameInput").value = state.name;
+$("nameInput").oninput = e => { state.name = e.target.value; e.target.style.borderColor = ""; localStorage.setItem("flashcardName", state.name); updateNotes(); };
+buildDeckPicker(); buildCardList(); refreshSavedList(); buildQuick();
+$("adjustBtn").onclick = () => {
+  const open = $("advanced").classList.toggle("hidden");
+  $("adjustBtn").setAttribute("aria-expanded", String(!open));
+  $("adjustBtn").textContent = open ? "Adjust settings" : "Hide settings";
+};
+$("loadBtn").onclick = () => {
+  const name = $("savedPick").value; if(!name) return;
+  const t = loadTests()[name]; if(!t) return;
+  if(!DECKS[t.deck]){ $("loadedNote").textContent = `The deck "${t.deck}" no longer exists.`; return; }
+  loadedTest = name; applySettings(t); refreshSavedList();
+};
+$("saveNewBtn").onclick = () => openNameRow("new", "");
+$("renameBtn").onclick = () => openNameRow("rename", loadedTest);
+$("nameOkBtn").onclick = commitName;
+$("testNameInput").onkeydown = e => { if(e.key === "Enter") commitName(); if(e.key === "Escape") closeNameRow(); };
+$("nameCancelBtn").onclick = closeNameRow;
+$("updateBtn").onclick = () => {
+  const t = loadTests(); t[loadedTest] = currentSettings(); storeTests(t); refreshSavedList();
+  $("loadedNote").textContent = `Updated "${loadedTest}".`;
+};
+$("deleteBtn").onclick = () => {
+  const b = $("deleteBtn");
+  if(b.textContent !== "Really delete?"){ b.textContent = "Really delete?"; return; }
+  const t = loadTests(); delete t[loadedTest]; storeTests(t); loadedTest = null; $("savedPick").value = ""; refreshSavedList();
+};
+segment("deckPick", v => { state.deck = v; buildCardList(); });
+segment("modePick", v => { state.mode = v; });
+segment("nPick", v => { state.n = +v; updateNotes(); });
+$("allBtn").onclick = () => { $("cardList").querySelectorAll("input[type=checkbox]").forEach(c => { c.checked = true; state.selected.add(+c.dataset.i); }); updateNotes(); };
+$("noneBtn").onclick = () => { $("cardList").querySelectorAll("input[type=checkbox]").forEach(c => { c.checked = false; }); state.selected.clear(); updateNotes(); };
+$("startBtn").onclick = () => startTest(state.selected);
+$("nextBtn").onclick = () => { state.i++; state.i < state.queue.length ? showQuestion() : finish(); };
+$("retryMissed").onclick = () => startTest(new Set(state.missed));
+$("againBtn").onclick = () => startTest(state.selected);
+$("setupBtn").onclick = () => { $("done").classList.add("hidden"); $("setup").classList.remove("hidden"); };
+</script>
+</body>
+</html>
