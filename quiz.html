@@ -168,7 +168,11 @@
   <div class="prompt" id="prompt"></div>
   <div class="choices" id="choices"></div>
   <div class="verdict" id="verdict"></div>
-  <p class="row"><button class="primary hidden" id="nextBtn">Next</button><button id="quitBtn">Stop test</button></p>
+  <p class="row"><button class="primary hidden" id="nextBtn">Next</button><button id="pauseBtn">Pause test</button></p>
+  <div class="row hidden" id="pausePanel">
+    <button class="primary" id="resumeBtn">Continue test</button>
+    <button id="stopBtn">Stop test</button>
+  </div>
 </section>
 
 <section id="done" class="hidden">
@@ -313,8 +317,34 @@ function saveSession(){
   localStorage.setItem(SKEY, JSON.stringify(all.slice(-1000)));
 }
 function fmt(s){ return `${Math.floor(s/60)}:${String(s%60).padStart(2,"0")}`; }
-function startTimer(){ tStart = Date.now(); $("timer").textContent = "0:00"; clearInterval(tick); tick = setInterval(() => $("timer").textContent = fmt(Math.floor((Date.now()-tStart)/1000)), 250); }
-function stopTimer(){ clearInterval(tick); return Math.round((Date.now()-tStart)/10)/100; }
+let timerRunning = false, pausedAt = null;
+function runTick(){ clearInterval(tick); tick = setInterval(() => $("timer").textContent = fmt(Math.floor((Date.now()-tStart)/1000)), 250); }
+function startTimer(){ tStart = Date.now(); $("timer").textContent = "0:00"; timerRunning = true; runTick(); }
+function stopTimer(){ clearInterval(tick); timerRunning = false; return Math.round((Date.now()-tStart)/10)/100; }
+const PAUSE_HIDE = ["prompt","choices","verdict"];
+function pauseTest(){
+  if(pausedAt !== null) return;
+  pausedAt = Date.now(); clearInterval(tick);
+  PAUSE_HIDE.forEach(id => $(id).classList.add("hidden"));
+  $("nextBtn").dataset.wasVisible = $("nextBtn").classList.contains("hidden") ? "" : "1";
+  $("nextBtn").classList.add("hidden");
+  $("pauseBtn").classList.add("hidden");
+  $("pausePanel").classList.remove("hidden");
+}
+function resetPauseUI(){
+  pausedAt = null;
+  PAUSE_HIDE.forEach(id => $(id).classList.remove("hidden"));
+  $("pauseBtn").classList.remove("hidden");
+  $("pausePanel").classList.add("hidden");
+}
+function resumeTest(){
+  if(pausedAt === null) return;
+  tStart += Date.now() - pausedAt;   // paused time never counts
+  const showNext = $("nextBtn").dataset.wasVisible === "1";
+  resetPauseUI();
+  if(showNext) $("nextBtn").classList.remove("hidden");
+  if(timerRunning) runTick();
+}
 const TKEY = "flashcardTests";
 let loadedTest = null;   // name of the saved test currently loaded, or null
 function loadTests(){
@@ -742,7 +772,12 @@ $("nextBtn").onclick = () => { state.i++; state.i < state.queue.length ? showQue
 $("retryMissed").onclick = () => startTest(new Set(state.missed));
 $("againBtn").onclick = () => startTest(state.selected);
 $("setupBtn").onclick = () => { $("done").classList.add("hidden"); $("setup").classList.remove("hidden"); };
-$("quitBtn").onclick = () => { clearInterval(tick); $("quiz").classList.add("hidden"); $("setup").classList.remove("hidden"); };
+$("pauseBtn").onclick = pauseTest;
+$("resumeBtn").onclick = resumeTest;
+$("stopBtn").onclick = () => {
+  clearInterval(tick); timerRunning = false; resetPauseUI();
+  $("quiz").classList.add("hidden"); $("setup").classList.remove("hidden");
+};
 $("resultsBtn").onclick = () => showResults("setup");
 $("doneResultsBtn").onclick = () => showResults("done");
 $("resultsName").onchange = renderResults;
