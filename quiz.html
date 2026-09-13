@@ -46,6 +46,17 @@
   .missed{border:2px solid var(--line);border-radius:12px;padding:12px 14px;margin-bottom:8px}
   .missed b{display:block}
   .hidden{display:none}
+  .timer{font-variant-numeric:tabular-nums;font-weight:700;font-size:20px;background:var(--soft);padding:4px 12px;border-radius:999px}
+  .res{border:2px solid var(--line);border-radius:12px;margin-bottom:10px;overflow:hidden}
+  .res summary{padding:12px 14px;cursor:pointer;list-style:none;display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap}
+  .res summary::-webkit-details-marker{display:none}
+  .res .sc{font-weight:800;font-size:20px}
+  .res .meta{color:#9aa6c2;font-size:15px}
+  .res ul{list-style:none;margin:0;padding:0 14px 12px}
+  .res li{padding:6px 0;border-top:1px solid var(--line);font-size:16px;display:flex;gap:10px}
+  .res li .mk{width:22px;flex:none;font-weight:800}
+  .res li.ok .mk{color:var(--go)} .res li.bad .mk{color:var(--no)}
+  .res li .pk{color:#9aa6c2}
   .quick{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:12px}
   .quick button{text-align:left;padding:18px 20px;font-size:22px;font-weight:700;border-color:var(--line)}
   .quick button small{display:block;font-size:15px;font-weight:400;color:#9aa6c2;margin-top:4px}
@@ -77,7 +88,7 @@
     <div class="quick" id="quickSavedList"></div>
   </div>
 
-  <p style="margin-top:28px"><button id="adjustBtn" aria-expanded="false">Adjust settings</button></p>
+  <p class="row" style="margin-top:28px"><button id="resultsBtn">Results</button><button id="adjustBtn" aria-expanded="false">Adjust settings</button></p>
 
   <div id="advanced" class="hidden">
   <h2 id="savedTitle">Save a test</h2>
@@ -130,12 +141,12 @@
 </section>
 
 <section id="quiz" class="hidden">
-  <p class="small" id="progressText"></p>
+  <div class="row" style="justify-content:space-between"><span class="small" id="progressText"></span><span class="timer" id="timer">0:00</span></div>
   <div class="bar"><div id="progressBar"></div></div>
   <div class="prompt" id="prompt"></div>
   <div class="choices" id="choices"></div>
   <div class="verdict" id="verdict"></div>
-  <button class="primary hidden" id="nextBtn">Next</button>
+  <p class="row"><button class="primary hidden" id="nextBtn">Next</button><button id="quitBtn">Stop test</button></p>
 </section>
 
 <section id="done" class="hidden">
@@ -146,13 +157,22 @@
   <h2>Scoreboard</h2>
   <p class="small">Best score for each person on this deck and test type. Saved on this device.</p>
   <table id="board"></table>
-  <h2>Recent tests</h2>
-  <table id="recent"></table>
   <p class="row" style="margin-top:20px">
     <button class="primary" id="retryMissed">Retry the ones I missed</button>
     <button id="againBtn">Same test again</button>
+    <button id="doneResultsBtn">Results</button>
     <button id="setupBtn">Back to setup</button>
   </p>
+</section>
+
+<section id="results" class="hidden">
+  <h1>Results</h1>
+  <p class="small">Every test ever started on this device, newest first. Tap one to see each word.</p>
+  <div class="row" style="margin-bottom:12px">
+    <select id="resultsName"><option value="">Everyone</option></select>
+    <button id="resultsBack">Back</button>
+  </div>
+  <div id="resultsList"></div>
 </section>
 
 </main>
@@ -203,7 +223,17 @@ const DECKS = {
 
 const $ = id => document.getElementById(id);
 const state = { deck: Object.keys(DECKS)[0], mode: "def2word", n: 4, selected: new Set(), queue: [], i: 0, right: 0, missed: [], name: "" };
-const KEY = "flashcardScores";
+const SKEY = "flashcardSessions";
+let session = null, tStart = 0, tick = null;
+function loadSessions(){ try { return JSON.parse(localStorage.getItem(SKEY)) || []; } catch(e){ return []; } }
+function saveSession(){
+  const all = loadSessions(); const k = all.findIndex(s => s.id === session.id);
+  k >= 0 ? all[k] = session : all.push(session);
+  localStorage.setItem(SKEY, JSON.stringify(all.slice(-1000)));
+}
+function fmt(s){ return `${Math.floor(s/60)}:${String(s%60).padStart(2,"0")}`; }
+function startTimer(){ tStart = Date.now(); $("timer").textContent = "0:00"; clearInterval(tick); tick = setInterval(() => $("timer").textContent = fmt(Math.floor((Date.now()-tStart)/1000)), 250); }
+function stopTimer(){ clearInterval(tick); return Math.round((Date.now()-tStart)/10)/100; }
 const TKEY = "flashcardTests";
 let loadedTest = null;   // name of the saved test currently loaded, or null
 function loadTests(){ try { return JSON.parse(localStorage.getItem(TKEY)) || {}; } catch(e){ return {}; } }
@@ -284,21 +314,33 @@ function applySettings(s){
   updateNotes();
 }
 const MODE_LABEL = { def2word: "meaning → word", word2def: "word → meaning" };
-function loadScores(){ try { return JSON.parse(localStorage.getItem(KEY)) || []; } catch(e){ return []; } }
-function saveScore(rec){ const all = loadScores(); all.push(rec); localStorage.setItem(KEY, JSON.stringify(all.slice(-500))); }
 function renderBoards(){
-  const all = loadScores();
-  const same = all.filter(r => r.deck===state.deck && r.mode===state.mode);
+  const same = loadSessions().filter(r => r.finished && r.deck===state.deck && r.mode===state.mode);
   const best = {};
   same.forEach(r => { const p = r.right/r.total; if(!best[r.name] || p > best[r.name].pct || (p===best[r.name].pct && r.total>best[r.name].total)) best[r.name] = {pct:p, right:r.right, total:r.total, n:r.n, when:r.when}; });
   const rows = Object.entries(best).sort((a,b)=>b[1].pct-a[1].pct || b[1].total-a[1].total);
   $("board").innerHTML = "<tr><th>Name</th><th>Best</th><th>Choices</th><th>When</th></tr>" +
-    (rows.length ? rows.map(([n,b]) => `<tr class="${n===state.name?'you':''}"><td>${n}</td><td>${b.right}/${b.total} (${Math.round(b.pct*100)}%)</td><td>${b.n}</td><td>${new Date(b.when).toLocaleDateString()}</td></tr>`).join("") : "<tr><td colspan=4>No scores yet.</td></tr>");
-  const recent = all.slice(-10).reverse();
-  $("recent").innerHTML = "<tr><th>Name</th><th>Deck</th><th>Test</th><th>Score</th><th>When</th></tr>" +
-    recent.map(r => `<tr><td>${r.name}</td><td>${r.deck}</td><td>${MODE_LABEL[r.mode]}, ${r.n} choices</td><td>${r.right}/${r.total}</td><td>${new Date(r.when).toLocaleString([], {dateStyle:"short", timeStyle:"short"})}</td></tr>`).join("");
+    (rows.length ? rows.map(([n,b]) => `<tr class="${n===state.name.trim()?'you':''}"><td>${n}</td><td>${b.right}/${b.total} (${Math.round(b.pct*100)}%)</td><td>${b.n}</td><td>${new Date(b.when).toLocaleDateString()}</td></tr>`).join("") : "<tr><td colspan=4>No finished tests yet.</td></tr>");
 }
-
+function renderResults(){
+  const who = $("resultsName").value;
+  const all = loadSessions().slice().reverse().filter(s => !who || s.name === who);
+  const names = [...new Set(loadSessions().map(s => s.name))].sort();
+  const sel = $("resultsName"); const cur = sel.value;
+  sel.innerHTML = '<option value="">Everyone</option>' + names.map(n => `<option value="${n}">${n}</option>`).join(""); sel.value = cur;
+  if(!all.length){ $("resultsList").innerHTML = '<p class="small">No tests yet.</p>'; return; }
+  $("resultsList").innerHTML = all.map(s => {
+    const answered = s.answers.length, wrong = answered - s.right;
+    const status = s.finished ? "finished" : `stopped after ${answered} of ${s.total}`;
+    const secs = answered ? Math.round(s.answers.reduce((a,x)=>a+x.secs,0)/answered*10)/10 : 0;
+    const items = s.answers.map(a => `<li class="${a.right?'ok':'bad'}"><span class="mk">${a.right?'✓':'✗'}</span><span>${a.word}${a.right?'':` <span class="pk">— picked “${a.picked}”</span>`} <span class="pk">${a.secs}s</span></span></li>`).join("");
+    return `<details class="res"><summary><span><span class="sc">${s.right}/${answered}</span> <span class="meta">${wrong} wrong</span><br><span class="meta">${s.name} · ${s.deck} · ${MODE_LABEL[s.mode]} · ${s.n} choices · ${status}</span></span><span class="meta" style="text-align:right">${new Date(s.when).toLocaleString([], {dateStyle:"short", timeStyle:"short"})}<br>${secs}s avg</span></summary><ul>${items || "<li class='meta'>No questions answered.</li>"}</ul></details>`;
+  }).join("");
+}
+function showResults(from){
+  $("setup").classList.add("hidden"); $("done").classList.add("hidden"); $("quiz").classList.add("hidden");
+  $("results").classList.remove("hidden"); $("results").dataset.from = from; renderResults();
+}
 function shuffle(a){ for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];} return a; }
 
 function segment(id, onPick){
@@ -347,6 +389,9 @@ function updateNotes(){
 
 function startTest(indices){
   state.queue = shuffle([...indices]); state.i = 0; state.right = 0; state.missed = [];
+  session = { id: Date.now() + "-" + Math.random().toString(36).slice(2,7), name: state.name.trim(), deck: state.deck, mode: state.mode,
+              n: Math.min(state.n, DECKS[state.deck].length), total: state.queue.length, right: 0, answers: [], finished: false, when: Date.now() };
+  saveSession();
   $("setup").classList.add("hidden"); $("done").classList.add("hidden"); $("quiz").classList.remove("hidden");
   showQuestion();
 }
@@ -359,6 +404,7 @@ function showQuestion(){
   $("prompt").textContent = askDef ? card[1] : card[0];
   $("verdict").textContent = ""; $("verdict").className = "verdict";
   $("nextBtn").classList.add("hidden");
+  startTimer();
 
   const nChoices = Math.min(state.n, deck.length);
   const others = shuffle(deck.map((_,i)=>i).filter(i=>i!==idx)).slice(0, nChoices-1);
@@ -373,8 +419,12 @@ function showQuestion(){
 }
 
 function answer(picked, correct, btn){
+  const secs = stopTimer();
   const btns = [...$("choices").children];
   btns.forEach(b => b.disabled = true);
+  session.answers.push({ word: DECKS[state.deck][correct][0], right: picked === correct, picked: DECKS[state.deck][picked][0], secs });
+  if(picked === correct) session.right++;
+  saveSession();
   const correctBtn = btns.find(b => b.textContent === (state.mode==="def2word" ? DECKS[state.deck][correct][0] : DECKS[state.deck][correct][1]));
   correctBtn.classList.add("right");
   if (picked === correct){ state.right++; $("verdict").textContent = "Correct!"; $("verdict").classList.add("ok"); }
@@ -384,6 +434,7 @@ function answer(picked, correct, btn){
 }
 
 function finish(){
+  clearInterval(tick);
   $("quiz").classList.add("hidden"); $("done").classList.remove("hidden");
   const total = state.queue.length, pct = Math.round(state.right/total*100);
   $("doneTitle").textContent = `All done, ${state.name.trim()}`;
@@ -396,7 +447,7 @@ function finish(){
     div.innerHTML = `<b>${w}</b>${d}`; box.appendChild(div);
   });
   $("retryMissed").classList.toggle("hidden", state.missed.length === 0);
-  saveScore({ name: state.name.trim(), deck: state.deck, mode: state.mode, n: Math.min(state.n, DECKS[state.deck].length), right: state.right, total, when: Date.now() });
+  session.finished = true; saveSession();
   renderBoards();
 }
 
@@ -440,6 +491,11 @@ $("nextBtn").onclick = () => { state.i++; state.i < state.queue.length ? showQue
 $("retryMissed").onclick = () => startTest(new Set(state.missed));
 $("againBtn").onclick = () => startTest(state.selected);
 $("setupBtn").onclick = () => { $("done").classList.add("hidden"); $("setup").classList.remove("hidden"); };
+$("quitBtn").onclick = () => { clearInterval(tick); $("quiz").classList.add("hidden"); $("setup").classList.remove("hidden"); };
+$("resultsBtn").onclick = () => showResults("setup");
+$("doneResultsBtn").onclick = () => showResults("done");
+$("resultsName").onchange = renderResults;
+$("resultsBack").onclick = () => { $("results").classList.add("hidden"); $($("results").dataset.from).classList.remove("hidden"); };
 </script>
 </body>
 </html>
