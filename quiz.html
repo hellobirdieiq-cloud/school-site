@@ -73,6 +73,7 @@
   .quick button:hover{border-color:var(--mark)}
   .quick button[aria-pressed="true"]{background:var(--mark);color:#0f1626;border-color:var(--mark)}
   .quick button[aria-pressed="true"] small{color:#0f1626}
+  .clshead{font-size:18px;color:#9aa6c2;margin:16px 0 8px;font-weight:600}
   select{font:inherit;color:var(--ink);background:var(--soft);border:2px solid var(--line);border-radius:12px;padding:12px 14px;max-width:320px}
   input[type=text]{font:inherit;color:var(--ink);background:var(--soft);border:2px solid var(--line);border-radius:12px;padding:12px 14px;width:100%;max-width:320px}
   table{border-collapse:collapse;width:100%;margin-top:8px}
@@ -92,12 +93,12 @@
 
 
   <h2>Start a quiz</h2>
-  <div class="quick" id="quickDecks"></div>
+  <div id="quickDecks"></div>
   <p class="small">Every word, 4 choices, see the meaning and pick the word.</p>
 
   <div id="quickSaved" class="hidden">
     <h2>Saved tests</h2>
-    <div class="quick" id="quickSavedList"></div>
+    <div id="quickSavedList"></div>
   </div>
 
   <p class="small hidden" id="pickHint">Settings open: tap a quiz to choose its deck, or a saved test to edit it.</p>
@@ -251,8 +252,27 @@ const DECKS = {
     ["Controlled Experiment","An experiment in which only one variable is manipulated at a time."],
     ["Data","Facts, figures, and other evidence gathered through observation."],
     ["Scientific Theory","A well-tested explanation for a wide range of observations or experimental results."]
+  ],
+  "Religion 1": [
+    ["Petition","Asking God for something you or someone else needs. Example: \"Please heal my sister.\""],
+    ["Adoration","Telling God how amazing and great He is, just because He's God. Example: \"I praise You, God.\""],
+    ["Contrition","Telling God you're sorry for something wrong you did. Example: \"I'm sorry for yelling at my mom.\""],
+    ["Thanksgiving","Saying thank you to God for the good things He gives you. Example: \"Thank you for my dog.\""]
   ]
 };
+// Class groupings for the start screen. Decks not listed here fall under
+// "Other" so nothing disappears if a name is mistyped.
+const SUBJECTS = { "Geography": ["Geography 1"],
+                   "Science": ["Science 1-1","Science 1-2","Science 1-3"],
+                   "Religion": ["Religion 1"] };
+const classOf = deck =>
+  Object.keys(SUBJECTS).find(c => SUBJECTS[c].includes(deck)) || "Other";
+function classGroups(items, deckOf){
+  const order = [...Object.keys(SUBJECTS), "Other"];
+  const g = {};
+  items.forEach(x => { const c = classOf(deckOf(x)); (g[c] = g[c] || []).push(x); });
+  return order.filter(c => g[c]).map(c => [c, g[c]]);
+}
 // Deck renames: map old stored names to current keys on every read, so old
 // saved tests and old results keep working under the new name.
 const DECK_RENAME = { "Science": "Science 1-1",
@@ -331,43 +351,57 @@ function commitName(){
   storeTests(t); loadedTest = name; closeNameRow(); refreshSavedList(); markQuickSelection();
   $("loadedNote").textContent = `Saved "${name}".`;
 }
+function classSection(parent, cls){
+  const h = document.createElement("h3"); h.className = "clshead"; h.textContent = cls;
+  const grid = document.createElement("div"); grid.className = "quick";
+  parent.append(h, grid);
+  return grid;
+}
+function makeSavedBtn(name, t){
+  const b = document.createElement("button");
+  b.dataset.test = name;
+  b.innerHTML = `${name}<small>${t.deck} · ${t.selected.length} words · ${t.n} choices · ${MODE_LABEL[t.mode]}</small>`;
+  b.onclick = () => {
+    if(settingsOpen()){   // load into settings for editing, don't start
+      loadedTest = name; applySettings(t); refreshSavedList(); markQuickSelection();
+      return;
+    }
+    if(!needName()) return;
+    loadedTest = name; applySettings(t); refreshSavedList(); startTest(state.selected);
+  };
+  return b;
+}
 function syncQuickSaved(){
-  const tests = loadTests(), names = Object.keys(tests).sort();
+  const tests = loadTests();
+  const names = Object.keys(tests).sort().filter(n => DECKS[tests[n].deck]);
   $("quickSaved").classList.toggle("hidden", names.length === 0);
   const sb = $("quickSavedList"); sb.innerHTML = "";
-  names.forEach(name => {
-    const t = tests[name]; if(!DECKS[t.deck]) return;
-    const b = document.createElement("button");
-    b.dataset.test = name;
-    b.innerHTML = `${name}<small>${t.deck} · ${t.selected.length} words · ${t.n} choices · ${MODE_LABEL[t.mode]}</small>`;
-    b.onclick = () => {
-      if(settingsOpen()){   // load into settings for editing, don't start
-        loadedTest = name; applySettings(t); refreshSavedList(); markQuickSelection();
-        return;
-      }
-      if(!needName()) return;
-      loadedTest = name; applySettings(t); refreshSavedList(); startTest(state.selected);
-    };
-    sb.appendChild(b);
+  classGroups(names, n => tests[n].deck).forEach(([cls, group]) => {
+    const grid = classSection(sb, cls);
+    group.forEach(name => grid.appendChild(makeSavedBtn(name, tests[name])));
   });
+}
+function makeDeckBtn(name){
+  const b = document.createElement("button");
+  b.dataset.deck = name;
+  b.innerHTML = `${name}<small>${DECKS[name].length} words</small>`;
+  b.onclick = () => {
+    if(settingsOpen()){   // choose this deck for the settings, don't start
+      state.deck = name; loadedTest = null;
+      buildCardList(); refreshSavedList(); markQuickSelection();
+      return;
+    }
+    if(!needName()) return;
+    applySettings({deck:name, mode:"def2word", n:4, selected: DECKS[name].map((_,i)=>i)});
+    loadedTest = null; refreshSavedList(); startTest(state.selected);
+  };
+  return b;
 }
 function buildQuick(){
   const box = $("quickDecks"); box.innerHTML = "";
-  Object.keys(DECKS).forEach(name => {
-    const b = document.createElement("button");
-    b.dataset.deck = name;
-    b.innerHTML = `${name}<small>${DECKS[name].length} words</small>`;
-    b.onclick = () => {
-      if(settingsOpen()){   // choose this deck for the settings, don't start
-        state.deck = name; loadedTest = null;
-        buildCardList(); refreshSavedList(); markQuickSelection();
-        return;
-      }
-      if(!needName()) return;
-      applySettings({deck:name, mode:"def2word", n:4, selected: DECKS[name].map((_,i)=>i)});
-      loadedTest = null; refreshSavedList(); startTest(state.selected);
-    };
-    box.appendChild(b);
+  classGroups(Object.keys(DECKS), d => d).forEach(([cls, decks]) => {
+    const grid = classSection(box, cls);
+    decks.forEach(name => grid.appendChild(makeDeckBtn(name)));
   });
   syncQuickSaved();
 }
