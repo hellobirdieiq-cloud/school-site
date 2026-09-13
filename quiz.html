@@ -48,6 +48,16 @@
   .hidden{display:none}
   .timer{font-variant-numeric:tabular-nums;font-weight:700;font-size:20px;background:var(--soft);padding:4px 12px;border-radius:999px}
   .res{border:2px solid var(--line);border-radius:12px;margin-bottom:10px;overflow:hidden}
+  .reswrap{position:relative;margin-bottom:10px;border-radius:12px;overflow:hidden}
+  .reswrap .res{margin-bottom:0;position:relative;z-index:1;background:var(--paper);
+    transition:transform .18s ease}
+  .reswrap.open .res{transform:translateX(-92px)}
+  .reswrap.dim .res{opacity:.55}
+  .swipeact{position:absolute;top:0;right:0;height:100%;width:92px;z-index:0;
+    border:none;border-radius:0;background:var(--no);color:#0f1626;font-weight:800}
+  .hidebtn{font-size:13px;padding:4px 10px;border-radius:8px;border:1px solid var(--line);
+    background:var(--soft);color:#9aa6c2;align-self:center;flex:none}
+  .hidebtn:hover{color:var(--ink);border-color:var(--ink)}
   .res summary{padding:12px 14px;cursor:pointer;list-style:none;display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap}
   .res summary::-webkit-details-marker{display:none}
   .res .sc{font-weight:800;font-size:20px}
@@ -167,9 +177,10 @@
 
 <section id="results" class="hidden">
   <h1>Results</h1>
-  <p class="small">Every test ever started on this device, newest first. Tap one to see each word.</p>
+  <p class="small">Every test ever started on this device, newest first. Tap one to see each word.<span id="hiddenCount"></span></p>
   <div class="row" style="margin-bottom:12px">
     <select id="resultsName"><option value="">Everyone</option></select>
+    <button id="toggleHidden" class="hidden">Show hidden</button>
     <button id="resultsBack">Back</button>
   </div>
   <div id="resultsList"></div>
@@ -315,26 +326,38 @@ function applySettings(s){
 }
 const MODE_LABEL = { def2word: "meaning → word", word2def: "word → meaning" };
 function renderBoards(){
-  const same = loadSessions().filter(r => r.finished && r.deck===state.deck && r.mode===state.mode);
+  const same = loadSessions().filter(r => r.finished && !r.hidden && r.deck===state.deck && r.mode===state.mode);
   const best = {};
   same.forEach(r => { const p = r.right/r.total; if(!best[r.name] || p > best[r.name].pct || (p===best[r.name].pct && r.total>best[r.name].total)) best[r.name] = {pct:p, right:r.right, total:r.total, n:r.n, when:r.when}; });
   const rows = Object.entries(best).sort((a,b)=>b[1].pct-a[1].pct || b[1].total-a[1].total);
   $("board").innerHTML = "<tr><th>Name</th><th>Best</th><th>Choices</th><th>When</th></tr>" +
     (rows.length ? rows.map(([n,b]) => `<tr class="${n===state.name.trim()?'you':''}"><td>${n}</td><td>${b.right}/${b.total} (${Math.round(b.pct*100)}%)</td><td>${b.n}</td><td>${new Date(b.when).toLocaleDateString()}</td></tr>`).join("") : "<tr><td colspan=4>No finished tests yet.</td></tr>");
 }
+let showHidden = false;
+function setHidden(id, val){
+  const all = loadSessions(); const k = all.findIndex(s => s.id === id);
+  if(k >= 0){ all[k].hidden = val; localStorage.setItem(SKEY, JSON.stringify(all)); }
+  renderResults();
+}
 function renderResults(){
   const who = $("resultsName").value;
-  const all = loadSessions().slice().reverse().filter(s => !who || s.name === who);
+  const mine = loadSessions().slice().reverse().filter(s => !who || s.name === who);
   const names = [...new Set(loadSessions().map(s => s.name))].sort();
   const sel = $("resultsName"); const cur = sel.value;
   sel.innerHTML = '<option value="">Everyone</option>' + names.map(n => `<option value="${n}">${n}</option>`).join(""); sel.value = cur;
+  const nHidden = mine.filter(s => s.hidden).length;
+  $("hiddenCount").textContent = nHidden ? ` ${nHidden} hidden.` : "";
+  $("toggleHidden").classList.toggle("hidden", nHidden === 0 && !showHidden);
+  $("toggleHidden").textContent = showHidden ? "Hide hidden" : "Show hidden";
+  const all = showHidden ? mine : mine.filter(s => !s.hidden);
   if(!all.length){ $("resultsList").innerHTML = '<p class="small">No tests yet.</p>'; return; }
   $("resultsList").innerHTML = all.map(s => {
     const answered = s.answers.length, wrong = answered - s.right;
     const status = s.finished ? "finished" : `stopped after ${answered} of ${s.total}`;
     const secs = answered ? Math.round(s.answers.reduce((a,x)=>a+x.secs,0)/answered*10)/10 : 0;
     const items = s.answers.map(a => `<li class="${a.right?'ok':'bad'}"><span class="mk">${a.right?'✓':'✗'}</span><span>${a.word}${a.right?'':` <span class="pk">— picked “${a.picked}”</span>`} <span class="pk">${a.secs}s</span></span></li>`).join("");
-    return `<details class="res"><summary><span><span class="sc">${s.right}/${answered}</span> <span class="meta">${wrong} wrong</span><br><span class="meta">${s.name} · ${s.deck} · ${MODE_LABEL[s.mode]} · ${s.n} choices · ${status}</span></span><span class="meta" style="text-align:right">${new Date(s.when).toLocaleString([], {dateStyle:"short", timeStyle:"short"})}<br>${secs}s avg</span></summary><ul>${items || "<li class='meta'>No questions answered.</li>"}</ul></details>`;
+    const act = s.hidden ? "Unhide" : "Hide";
+    return `<div class="reswrap${s.hidden ? ' dim' : ''}" data-id="${s.id}"><button class="swipeact" type="button">${act}</button><details class="res"><summary><span><span class="sc">${s.right}/${answered}</span> <span class="meta">${wrong} wrong</span><br><span class="meta">${s.name} · ${s.deck} · ${MODE_LABEL[s.mode]} · ${s.n} choices · ${status}</span></span><span class="meta" style="text-align:right">${new Date(s.when).toLocaleString([], {dateStyle:"short", timeStyle:"short"})}<br>${secs}s avg</span><button class="hidebtn" type="button">${act}</button></summary><ul>${items || "<li class='meta'>No questions answered.</li>"}</ul></details></div>`;
   }).join("");
 }
 function showResults(from){
@@ -496,6 +519,49 @@ $("resultsBtn").onclick = () => showResults("setup");
 $("doneResultsBtn").onclick = () => showResults("done");
 $("resultsName").onchange = renderResults;
 $("resultsBack").onclick = () => { $("results").classList.add("hidden"); $($("results").dataset.from).classList.remove("hidden"); };
+$("toggleHidden").onclick = () => { showHidden = !showHidden; renderResults(); };
+
+// Hide/Unhide clicks (summary button + revealed swipe button). Capture phase
+// so the summary click never toggles the <details>; also swallows the ghost
+// click that can follow a touch swipe.
+$("resultsList").addEventListener("click", e => {
+  const w = e.target.closest(".reswrap");
+  if(w && w.dataset.swiped){ delete w.dataset.swiped; e.preventDefault(); e.stopPropagation(); return; }
+  const b = e.target.closest(".hidebtn, .swipeact");
+  if(!b || !w) return;
+  e.preventDefault(); e.stopPropagation();
+  const s = loadSessions().find(x => x.id === w.dataset.id);
+  setHidden(w.dataset.id, !(s && s.hidden));
+}, true);
+
+// Touch swipe: left over ~60px reveals the red button, right closes.
+let swX = 0, swY = 0, swEl = null;
+$("resultsList").addEventListener("touchstart", e => {
+  swEl = e.target.closest(".reswrap");
+  swX = e.touches[0].clientX; swY = e.touches[0].clientY;
+}, {passive:true});
+$("resultsList").addEventListener("touchmove", e => {
+  if(!swEl) return;
+  const dx = e.touches[0].clientX - swX, dy = e.touches[0].clientY - swY;
+  if(Math.abs(dx) > 60 && Math.abs(dx) > Math.abs(dy) * 1.5)
+    swEl.classList.toggle("open", dx < 0);
+}, {passive:true});
+$("resultsList").addEventListener("touchend", e => {
+  if(!swEl) return;
+  const dx = e.changedTouches[0].clientX - swX, dy = e.changedTouches[0].clientY - swY;
+  if(Math.abs(dx) > 60 && Math.abs(dx) > Math.abs(dy) * 1.5){
+    document.querySelectorAll(".reswrap.open").forEach(w => { if(w !== swEl) w.classList.remove("open"); });
+    swEl.classList.toggle("open", dx < 0);
+    swEl.dataset.swiped = "1";           // keep this gesture from toggling the <details>
+  }
+  swEl = null;
+}, {passive:true});
+// Tapping/clicking anywhere else closes a revealed button.
+["touchstart","mousedown"].forEach(ev => document.addEventListener(ev, e => {
+  document.querySelectorAll(".reswrap.open").forEach(w => {
+    if(!w.contains(e.target)) w.classList.remove("open");
+  });
+}, {passive:true}));
 </script>
 </body>
 </html>
