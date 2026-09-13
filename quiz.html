@@ -68,7 +68,7 @@
   .res li.ok .mk{color:var(--go)} .res li.bad .mk{color:var(--no)}
   .res li .pk{color:#9aa6c2}
   .quick{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:12px}
-  .quick button{text-align:left;padding:18px 20px;font-size:22px;font-weight:700;border-color:var(--line)}
+  .quick button{text-align:left;padding:18px 20px;font-size:22px;font-weight:700;border-color:var(--ink)}
   .quick button small{display:block;font-size:15px;font-weight:400;color:#9aa6c2;margin-top:4px}
   .quick button:hover{border-color:var(--mark)}
   select{font:inherit;color:var(--ink);background:var(--soft);border:2px solid var(--line);border-radius:12px;padding:12px 14px;max-width:320px}
@@ -197,7 +197,7 @@
 <script>
 // ---------- DATA: add decks here ----------
 const DECKS = {
-  "Geography": [
+  "Geography 1": [
     ["Region","An area that shares one or more common features that make it different from nearby areas."],
     ["Social Science","The study of people and how they live."],
     ["Landscape","All the natural and human-made features that make a place unique."],
@@ -225,7 +225,7 @@ const DECKS = {
     ["Relative Location","The general location of a place based on where it is compared to other places."],
     ["Absolute Location","The exact location of a place using a specific address or coordinates."]
   ],
-  "Science 1-1 Words": [
+  "Science 1-1": [
     ["Science","A way of learning about the natural world through observation and logical reasoning that leads to a body of knowledge. Scire - Know the goal of science."],
     ["Observing","The process of using one or more of your senses to gather information."],
     ["Quantitative Observation","An observation that deals with a number or amount."],
@@ -260,8 +260,10 @@ const DECKS = {
 };
 // Deck renames: map old stored names to current keys on every read, so old
 // saved tests and old results keep working under the new name.
-const DECK_RENAME = { "Science": "Science 1-1 Words",
-                      "Science 1-3 (unfinished)": "Science 1-3" };
+const DECK_RENAME = { "Science": "Science 1-1",
+                      "Science 1-1 Words": "Science 1-1",
+                      "Science 1-3 (unfinished)": "Science 1-3",
+                      "Geography": "Geography 1" };
 // ---------- END DATA ----------
 
 const $ = id => document.getElementById(id);
