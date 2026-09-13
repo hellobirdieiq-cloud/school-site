@@ -9,6 +9,7 @@
   :root{
     --ink:#eef1f8; --paper:#0f1626; --line:#2c3852; --soft:#1a2338;
     --go:#4fd68a; --go-bg:#153826; --no:#ff7b72; --no-bg:#3a1c1c; --mark:#ffd23f;
+    --c-geo:#5aa9ff; --c-sci:#4fd68a; --c-rel:#c78bff; --c-other:#9aa6c2;
   }
   *{box-sizing:border-box}
   html,body{margin:0;background:var(--paper);color:var(--ink);
@@ -68,13 +69,15 @@
   .res li.ok .mk{color:var(--go)} .res li.bad .mk{color:var(--no)}
   .res li .pk{color:#9aa6c2}
   .quick{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:12px}
-  .quick button{text-align:left;padding:18px 20px;font-size:22px;font-weight:700;border-color:var(--ink)}
+  .quick button{text-align:left;padding:18px 20px;font-size:22px;font-weight:700;border-color:var(--ink);
+    border-left:6px solid var(--cc,var(--ink))}
   .quick button small{display:block;font-size:15px;font-weight:400;color:#9aa6c2;margin-top:4px}
   .quick button:hover{border-color:var(--mark)}
   .quick button[aria-pressed="true"]{background:var(--mark);color:#0f1626;border-color:var(--mark)}
   .quick button[aria-pressed="true"] small{color:#0f1626}
-  .clshead{font-size:24px;color:var(--ink);margin:26px 0 10px;font-weight:800;
-    border-bottom:2px solid var(--line);padding-bottom:6px}
+  .sect{font-size:28px;font-weight:800;margin:36px 0 6px}
+  .clshead{font-size:19px;font-weight:700;letter-spacing:.01em;margin:18px 0 8px;
+    color:var(--cc,#9aa6c2)}
   select{font:inherit;color:var(--ink);background:var(--soft);border:2px solid var(--line);border-radius:12px;padding:12px 14px;max-width:320px}
   input[type=text]{font:inherit;color:var(--ink);background:var(--soft);border:2px solid var(--line);border-radius:12px;padding:12px 14px;width:100%;max-width:320px}
   table{border-collapse:collapse;width:100%;margin-top:8px}
@@ -93,12 +96,12 @@
   <input type="text" id="nameInput" placeholder="Type your nickname" maxlength="20" autocomplete="off">
 
 
-  <h2>Start a quiz</h2>
+  <h2 class="sect">Start a quiz</h2>
+  <p class="small" style="margin:0 0 10px">Every word, 4 choices, see the meaning and pick the word.</p>
   <div id="quickDecks"></div>
-  <p class="small">Every word, 4 choices, see the meaning and pick the word.</p>
 
   <div id="quickSaved" class="hidden">
-    <h2>Saved tests</h2>
+    <h2 class="sect">Saved tests</h2>
     <div id="quickSavedList"></div>
   </div>
 
@@ -268,6 +271,12 @@ const SUBJECTS = { "Geography": ["Geography 1"],
                    "Religion": ["Religion 1"] };
 const classOf = deck =>
   Object.keys(SUBJECTS).find(c => SUBJECTS[c].includes(deck)) || "Other";
+const CLASS_COLOR = { "Geography": "--c-geo", "Science": "--c-sci",
+                      "Religion": "--c-rel", "Other": "--c-other" };
+function tagClass(el, cls){
+  el.dataset.class = cls;
+  el.style.setProperty("--cc", `var(${CLASS_COLOR[cls] || "--c-other"})`);
+}
 function classGroups(items, deckOf){
   const order = [...Object.keys(SUBJECTS), "Other"];
   const g = {};
@@ -354,6 +363,7 @@ function commitName(){
 }
 function classSection(parent, cls){
   const h = document.createElement("h3"); h.className = "clshead"; h.textContent = cls;
+  tagClass(h, cls);
   const grid = document.createElement("div"); grid.className = "quick";
   parent.append(h, grid);
   return grid;
@@ -361,6 +371,7 @@ function classSection(parent, cls){
 function makeSavedBtn(name, t){
   const b = document.createElement("button");
   b.dataset.test = name;
+  tagClass(b, classOf(t.deck));
   b.innerHTML = `${name}<small>${t.deck} · ${t.selected.length} words · ${t.n} choices · ${MODE_LABEL[t.mode]}</small>`;
   b.onclick = () => {
     if(settingsOpen()){   // load into settings for editing, don't start
@@ -385,6 +396,7 @@ function syncQuickSaved(){
 function makeDeckBtn(name){
   const b = document.createElement("button");
   b.dataset.deck = name;
+  tagClass(b, classOf(name));
   b.innerHTML = `${name}<small>${DECKS[name].length} words</small>`;
   b.onclick = () => {
     if(settingsOpen()){   // choose this deck for the settings, don't start
