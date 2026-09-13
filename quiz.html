@@ -128,8 +128,14 @@
   <div class="row seg" id="modePick">
     <button data-v="def2word" aria-pressed="true">Show meaning, pick the word</button>
     <button data-v="word2def" aria-pressed="false">Show word, pick the meaning</button>
+    <button data-v="type" aria-pressed="false">Type the answer</button>
+  </div>
+  <div class="row seg hidden" id="typePick" style="margin-top:10px">
+    <button data-v="typeWord" aria-pressed="true">See meaning, type the word</button>
+    <button data-v="typeDef" aria-pressed="false">See word, type the meaning</button>
   </div>
 
+  <div id="nSection">
   <h2>How many choices</h2>
   <div class="row seg" id="nPick">
     <button data-v="4" aria-pressed="true">4</button>
@@ -137,6 +143,7 @@
     <button data-v="12" aria-pressed="false">12</button>
   </div>
   <p class="small" id="nNote"></p>
+  </div>
 
   <h2>Cards to test</h2>
   <div class="row">
@@ -218,7 +225,7 @@ const DECKS = {
     ["Relative Location","The general location of a place based on where it is compared to other places."],
     ["Absolute Location","The exact location of a place using a specific address or coordinates."]
   ],
-  "Science": [
+  "Science 1-1 Words": [
     ["Science","A way of learning about the natural world through observation and logical reasoning that leads to a body of knowledge. Scire - Know the goal of science."],
     ["Observing","The process of using one or more of your senses to gather information."],
     ["Quantitative Observation","An observation that deals with a number or amount."],
@@ -228,15 +235,39 @@ const DECKS = {
     ["Classifying","The process of grouping together items that are alike in some ways."],
     ["Evaluating","Comparing observation and data to reach a conclusion about them."],
     ["Making Models","The process of creating representations of complex objects or processes."]
+  ],
+  "Science 1-2": [
+    ["Skepticism","An attitude of doubt."],
+    ["Ethics","The rules that enable people to know right from wrong."],
+    ["Personal Bias","An outlook influenced by a person's likes and dislikes."],
+    ["Cultural Bias","An outlook influenced by the beliefs, social norms, and traits of a group."],
+    ["Experimental Bias","A mistake in the design of an experiment that makes a particular result more likely."],
+    ["Objective","Describes the act of decision making or drawing conclusions based on available evidence."],
+    ["Subjective","Describes the influence of personal feelings on a decision or conclusion."],
+    ["Deductive Reasoning","A way to explain things by starting with a general idea and then applying the idea to a specific observation."],
+    ["Inductive Reasoning","Using specific observations to make generalizations."]
+  ],
+  "Science 1-3 (unfinished)": [
+    ["Scientific Inquiry","The ongoing process of discovery in science; the diverse ways in which scientists study the natural world and propose explanations based on evidence they gather."],
+    ["Hypothesis","A possible explanation for a set of observations or answer to a scientific question; must be testable."]
   ]
 };
+// Deck renames: map old stored names to current keys on every read, so old
+// saved tests and old results keep working under the new name.
+const DECK_RENAME = { "Science": "Science 1-1 Words" };
 // ---------- END DATA ----------
 
 const $ = id => document.getElementById(id);
 const state = { deck: Object.keys(DECKS)[0], mode: "def2word", n: 4, selected: new Set(), queue: [], i: 0, right: 0, missed: [], name: "" };
 const SKEY = "flashcardSessions";
 let session = null, tStart = 0, tick = null;
-function loadSessions(){ try { return JSON.parse(localStorage.getItem(SKEY)) || []; } catch(e){ return []; } }
+function loadSessions(){
+  try {
+    const a = JSON.parse(localStorage.getItem(SKEY)) || [];
+    a.forEach(s => { if(DECK_RENAME[s.deck]) s.deck = DECK_RENAME[s.deck]; });
+    return a;
+  } catch(e){ return []; }
+}
 function saveSession(){
   const all = loadSessions(); const k = all.findIndex(s => s.id === session.id);
   k >= 0 ? all[k] = session : all.push(session);
@@ -247,7 +278,13 @@ function startTimer(){ tStart = Date.now(); $("timer").textContent = "0:00"; cle
 function stopTimer(){ clearInterval(tick); return Math.round((Date.now()-tStart)/10)/100; }
 const TKEY = "flashcardTests";
 let loadedTest = null;   // name of the saved test currently loaded, or null
-function loadTests(){ try { return JSON.parse(localStorage.getItem(TKEY)) || {}; } catch(e){ return {}; } }
+function loadTests(){
+  try {
+    const t = JSON.parse(localStorage.getItem(TKEY)) || {};
+    Object.values(t).forEach(x => { if(DECK_RENAME[x.deck]) x.deck = DECK_RENAME[x.deck]; });
+    return t;
+  } catch(e){ return {}; }
+}
 function storeTests(t){ localStorage.setItem(TKEY, JSON.stringify(t)); }
 function currentSettings(){ return { deck: state.deck, mode: state.mode, n: state.n, selected: [...state.selected].sort((a,b)=>a-b) }; }
 function refreshSavedList(){
@@ -318,13 +355,23 @@ function needName(){
 function pressSeg(id, v){ [...$(id).children].forEach(b => b.setAttribute("aria-pressed", b.dataset.v === String(v))); }
 function applySettings(s){
   state.deck = s.deck; state.mode = s.mode; state.n = s.n;
-  pressSeg("deckPick", s.deck); pressSeg("modePick", s.mode); pressSeg("nPick", s.n);
+  pressSeg("deckPick", s.deck); pressSeg("nPick", s.n);
+  if(isType(s.mode)){ pressSeg("modePick", "type"); pressSeg("typePick", s.mode); }
+  else pressSeg("modePick", s.mode);
+  syncModeUI();
   buildCardList();
   state.selected = new Set(s.selected.filter(i => i < DECKS[s.deck].length));
   $("cardList").querySelectorAll("input[type=checkbox]").forEach(c => c.checked = state.selected.has(+c.dataset.i));
   updateNotes();
 }
-const MODE_LABEL = { def2word: "meaning → word", word2def: "word → meaning" };
+const MODE_LABEL = { def2word: "meaning → word", word2def: "word → meaning",
+                     typeWord: "type the word", typeDef: "type the meaning" };
+const isType = m => m === "typeWord" || m === "typeDef";
+function syncModeUI(){
+  const t = isType(state.mode);
+  $("typePick").classList.toggle("hidden", !t);
+  $("nSection").classList.toggle("hidden", t);
+}
 function renderBoards(){
   const same = loadSessions().filter(r => r.finished && !r.hidden && r.deck===state.deck && r.mode===state.mode);
   const best = {};
@@ -357,7 +404,12 @@ function renderResults(){
     const answered = s.answers.length, wrong = answered - s.right;
     const status = s.finished ? "finished" : `stopped after ${answered} of ${s.total}`;
     const secs = answered ? Math.round(s.answers.reduce((a,x)=>a+x.secs,0)/answered*10)/10 : 0;
-    const items = s.answers.map(a => `<li class="${a.right?'ok':'bad'}"><span class="mk">${a.right?'✓':'✗'}</span><span>${a.word}${a.right?'':` <span class="pk">— picked “${a.picked}”</span>`} <span class="pk">${a.secs}s</span></span></li>`).join("");
+    const items = s.answers.map(a => {
+      const tail = a.typed !== undefined
+        ? `${a.graded === "self" ? ' <span class="pk">self-graded</span>' : ''} <span class="pk">${a.secs}s</span><br><span class="pk">typed: “${a.typed}”</span><br><span class="pk">answer: ${a.actual}</span>`
+        : `${a.right?'':` <span class="pk">— picked “${a.picked}”</span>`} <span class="pk">${a.secs}s</span>`;
+      return `<li class="${a.right?'ok':'bad'}"><span class="mk">${a.right?'✓':'✗'}</span><span>${a.word}${tail}</span></li>`;
+    }).join("");
     const act = s.hidden ? "Unhide" : "Hide";
     return `<div class="reswrap${s.hidden ? ' dim' : ''}" data-id="${s.id}"><button class="swipeact" type="button">${act}</button><details class="res"><summary><span><span class="sc">${s.right}/${answered}</span> <span class="meta">${wrong} wrong</span><br><span class="meta">${s.name} · ${s.deck} · ${MODE_LABEL[s.mode]} · ${s.n} choices · ${status}</span></span><span class="meta" style="text-align:right">${new Date(s.when).toLocaleString([], {dateStyle:"short", timeStyle:"short"})}<br>${secs}s avg</span><button class="hidebtn" type="button">${act}</button></summary><ul>${items || "<li class='meta'>No questions answered.</li>"}</ul></details></div>`;
   }).join("");
@@ -423,13 +475,31 @@ function startTest(indices){
 
 function showQuestion(){
   const deck = DECKS[state.deck], idx = state.queue[state.i], card = deck[idx];
-  const askDef = state.mode === "def2word";
+  const askDef = state.mode === "def2word" || state.mode === "typeWord";
   $("progressText").textContent = `Question ${state.i+1} of ${state.queue.length}`;
   $("progressBar").style.width = `${(state.i/state.queue.length)*100}%`;
   $("prompt").textContent = askDef ? card[1] : card[0];
   $("verdict").textContent = ""; $("verdict").className = "verdict";
   $("nextBtn").classList.add("hidden");
   startTimer();
+
+  if(isType(state.mode)){
+    const box = $("choices"); box.innerHTML = "";
+    const inp = document.createElement("input");
+    inp.type = "text"; inp.id = "typeIn";
+    inp.placeholder = state.mode === "typeWord" ? "Type the word" : "Type the meaning";
+    inp.autocomplete = "off"; inp.autocapitalize = "off";
+    inp.setAttribute("autocorrect", "off"); inp.spellcheck = false;
+    inp.style.maxWidth = "460px"; inp.style.fontSize = "19px";
+    inp.onkeydown = e => { if(e.key === "Enter"){ e.preventDefault(); checkTyped(idx); } };
+    const go = document.createElement("button");
+    go.className = "primary"; go.id = "checkBtn"; go.textContent = "Check";
+    go.onclick = () => checkTyped(idx);
+    const row = document.createElement("div"); row.className = "row";
+    row.append(inp, go); box.appendChild(row);
+    inp.focus();
+    return;
+  }
 
   const nChoices = Math.min(state.n, deck.length);
   const others = shuffle(deck.map((_,i)=>i).filter(i=>i!==idx)).slice(0, nChoices-1);
@@ -441,6 +511,61 @@ function showQuestion(){
     b.onclick = () => answer(i, idx, b);
     box.appendChild(b);
   });
+}
+
+function normAns(s){
+  return s.toLowerCase().replace(/[()\-–—'’"“”.,:;!?]/g, " ").replace(/\s+/g, " ").trim();
+}
+function acceptableWords(word){
+  // "Global Positioning System (GPS)" -> gps AND global positioning system both count
+  const set = new Set([normAns(word)]);
+  const m = word.match(/^(.*?)\s*\(([^)]+)\)\s*$/);
+  if(m){ set.add(normAns(m[1])); set.add(normAns(m[2])); }
+  return set;
+}
+function recordTyped(correct, right, typed, actual, graded, secs){
+  session.answers.push({ word: DECKS[state.deck][correct][0], right,
+    picked: typed, typed, actual, graded, secs });
+  if(right){ session.right++; state.right++; } else state.missed.push(correct);
+  saveSession();
+}
+function showNextBtn(){
+  $("nextBtn").textContent = state.i+1 < state.queue.length ? "Next" : "See my score";
+  $("nextBtn").classList.remove("hidden");
+  // focus on the next tick: focusing during the submit keystroke lets the
+  // same Enter's keyup activate the button and skip a question
+  setTimeout(() => $("nextBtn").focus(), 0);
+}
+function checkTyped(correctIdx){
+  const inp = $("typeIn"); if(!inp || inp.disabled) return;
+  const typed = inp.value.trim(); if(!typed) return;
+  const secs = stopTimer();                 // timer stops at Check, not at self-grade
+  const card = DECKS[state.deck][correctIdx];
+  const actual = state.mode === "typeWord" ? card[0] : card[1];
+  inp.disabled = true; $("checkBtn").disabled = true;
+  if(state.mode === "typeWord" && acceptableWords(card[0]).has(normAns(typed))){
+    recordTyped(correctIdx, true, typed, actual, "auto", secs);
+    $("verdict").textContent = "Correct!"; $("verdict").classList.add("ok");
+    showNextBtn();
+    return;
+  }
+  const panel = document.createElement("div"); panel.className = "missed";
+  panel.innerHTML = `<span class="small">Your answer:</span><b>${typed}</b>
+    <span class="small">Real answer:</span><b>${actual}</b>`;
+  const row = document.createElement("div"); row.className = "row";
+  row.style.marginTop = "10px";
+  const yes = document.createElement("button"); yes.textContent = "I got it right";
+  const no = document.createElement("button"); no.textContent = "I got it wrong";
+  const grade = right => {
+    yes.disabled = no.disabled = true;
+    recordTyped(correctIdx, right, typed, actual, "self", secs);
+    $("verdict").textContent = right ? "Correct!" : "Marked wrong — it'll show up to review.";
+    $("verdict").classList.add(right ? "ok" : "bad");
+    showNextBtn();
+  };
+  yes.onclick = () => grade(true); no.onclick = () => grade(false);
+  row.append(yes, no); panel.appendChild(row);
+  $("choices").appendChild(panel);
 }
 
 function answer(picked, correct, btn){
@@ -507,7 +632,14 @@ $("deleteBtn").onclick = () => {
   const t = loadTests(); delete t[loadedTest]; storeTests(t); loadedTest = null; $("savedPick").value = ""; refreshSavedList();
 };
 segment("deckPick", v => { state.deck = v; buildCardList(); });
-segment("modePick", v => { state.mode = v; });
+segment("modePick", v => {
+  if(v === "type"){
+    const tv = [...$("typePick").children].find(b => b.getAttribute("aria-pressed") === "true");
+    state.mode = tv ? tv.dataset.v : "typeWord";
+  } else state.mode = v;
+  syncModeUI();
+});
+segment("typePick", v => { state.mode = v; });
 segment("nPick", v => { state.n = +v; updateNotes(); });
 $("allBtn").onclick = () => { $("cardList").querySelectorAll("input[type=checkbox]").forEach(c => { c.checked = true; state.selected.add(+c.dataset.i); }); updateNotes(); };
 $("noneBtn").onclick = () => { $("cardList").querySelectorAll("input[type=checkbox]").forEach(c => { c.checked = false; }); state.selected.clear(); updateNotes(); };
