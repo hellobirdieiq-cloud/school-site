@@ -60,6 +60,8 @@
   .hidebtn{font-size:13px;padding:4px 10px;border-radius:8px;border:1px solid var(--line);
     background:var(--soft);color:#9aa6c2;align-self:center;flex:none}
   .hidebtn:hover{color:var(--ink);border-color:var(--ink)}
+  .contbtn{font-size:13px;padding:4px 10px;border-radius:8px;border:1px solid var(--mark);
+    background:var(--mark);color:#0f1626;font-weight:700;align-self:center;flex:none}
   .res summary{padding:12px 14px;cursor:pointer;list-style:none;display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap}
   .res summary::-webkit-details-marker{display:none}
   .res .sc{font-weight:800;font-size:20px}
@@ -517,8 +519,28 @@ function renderResults(){
       return `<li class="${a.right?'ok':'bad'}"><span class="mk">${a.right?'✓':'✗'}</span><span>${a.word}${tail}</span></li>`;
     }).join("");
     const act = s.hidden ? "Unhide" : "Hide";
-    return `<div class="reswrap${s.hidden ? ' dim' : ''}" data-id="${s.id}"><button class="swipeact" type="button">${act}</button><details class="res"><summary><span><span class="sc">${s.right}/${answered}</span> <span class="meta">${wrong} wrong</span><br><span class="meta">${s.name} · ${s.deck} · ${MODE_LABEL[s.mode]} · ${s.n} choices · ${status}</span></span><span class="meta" style="text-align:right">${new Date(s.when).toLocaleString([], {dateStyle:"short", timeStyle:"short"})}<br>${secs}s avg</span><button class="hidebtn" type="button">${act}</button></summary><ul>${items || "<li class='meta'>No questions answered.</li>"}</ul></details></div>`;
+    const canResume = !s.finished && !s.hidden && Array.isArray(s.queue)
+      && s.answers.length < s.queue.length;
+    const cont = canResume ? '<button class="contbtn" type="button">Continue</button>' : '';
+    return `<div class="reswrap${s.hidden ? ' dim' : ''}" data-id="${s.id}"><button class="swipeact" type="button">${act}</button><details class="res"><summary><span><span class="sc">${s.right}/${answered}</span> <span class="meta">${wrong} wrong</span><br><span class="meta">${s.name} · ${s.deck} · ${MODE_LABEL[s.mode]} · ${s.n} choices · ${status}</span></span><span class="meta" style="text-align:right">${new Date(s.when).toLocaleString([], {dateStyle:"short", timeStyle:"short"})}<br>${secs}s avg</span>${cont}<button class="hidebtn" type="button">${act}</button></summary><ul>${items || "<li class='meta'>No questions answered.</li>"}</ul></details></div>`;
   }).join("");
+}
+function resumeSession(id){
+  const s = loadSessions().find(x => x.id === id);
+  if(!s || s.finished || !s.queue || s.answers.length >= s.queue.length) return;
+  const deckName = DECK_RENAME[s.deck] || s.deck;
+  if(!DECKS[deckName]) return;
+  const deck = DECKS[deckName];
+  state.deck = deckName; state.mode = s.mode; state.n = s.n;
+  state.queue = s.queue.slice(); state.i = s.answers.length; state.right = s.right;
+  state.missed = s.answers.filter(a => !a.right)
+    .map(a => deck.findIndex(c => c[0] === a.word)).filter(i => i >= 0);
+  state.name = s.name;
+  $("nameInput").value = NAME_PILLS.includes(s.name) ? "" : s.name;
+  localStorage.setItem("flashcardName", s.name); syncNamePick();
+  session = s;
+  $("results").classList.add("hidden"); $("quiz").classList.remove("hidden");
+  showQuestion();
 }
 function showResults(from){
   $("setup").classList.add("hidden"); $("done").classList.add("hidden"); $("quiz").classList.add("hidden");
@@ -575,7 +597,8 @@ function updateNotes(){
 function startTest(indices){
   state.queue = shuffle([...indices]); state.i = 0; state.right = 0; state.missed = [];
   session = { id: Date.now() + "-" + Math.random().toString(36).slice(2,7), name: state.name.trim(), deck: state.deck, mode: state.mode,
-              n: Math.min(state.n, DECKS[state.deck].length), total: state.queue.length, right: 0, answers: [], finished: false, when: Date.now() };
+              n: Math.min(state.n, DECKS[state.deck].length), total: state.queue.length, right: 0, answers: [], finished: false, when: Date.now(),
+              queue: [...state.queue] };
   saveSession();
   $("setup").classList.add("hidden"); $("done").classList.add("hidden"); $("quiz").classList.remove("hidden");
   showQuestion();
@@ -791,6 +814,8 @@ $("resultsList").addEventListener("click", e => {
   const w = e.target.closest(".reswrap");
   if(w && w.dataset.swiped){ delete w.dataset.swiped;
     if(!e.target.closest(".swipeact")){ e.preventDefault(); e.stopPropagation(); return; } }
+  const c = e.target.closest(".contbtn");
+  if(c && w){ e.preventDefault(); e.stopPropagation(); resumeSession(w.dataset.id); return; }
   const b = e.target.closest(".hidebtn, .swipeact");
   if(!b || !w) return;
   e.preventDefault(); e.stopPropagation();
