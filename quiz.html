@@ -94,7 +94,11 @@
   <h1>Flashcard test</h1>
 
   <h2>Nickname</h2>
-  <input type="text" id="nameInput" placeholder="Type your nickname" maxlength="20" autocomplete="off">
+  <div class="row seg" id="namePick" style="margin-bottom:10px">
+    <button data-v="Luca">Luca</button>
+    <button data-v="the Mule">the Mule</button>
+  </div>
+  <input type="text" id="nameInput" placeholder="Or type another name" maxlength="20" autocomplete="off">
 
 
   <h2 class="sect">Start a quiz</h2>
@@ -679,9 +683,26 @@ function finish(){
 }
 
 // wire up
-state.name = localStorage.getItem("flashcardName") || "";
-$("nameInput").value = state.name;
-$("nameInput").oninput = e => { state.name = e.target.value; e.target.style.borderColor = ""; localStorage.setItem("flashcardName", state.name); updateNotes(); };
+const NAME_PILLS = ["Luca", "the Mule"];
+function syncNamePick(){
+  [...$("namePick").children].forEach(b =>
+    b.setAttribute("aria-pressed", b.dataset.v === state.name.trim()));
+}
+state.name = localStorage.getItem("flashcardName") || "Luca";   // default: Luca
+localStorage.setItem("flashcardName", state.name);
+$("nameInput").value = NAME_PILLS.includes(state.name) ? "" : state.name;
+syncNamePick();
+$("namePick").addEventListener("click", e => {
+  const b = e.target.closest("button"); if(!b) return;
+  state.name = b.dataset.v; localStorage.setItem("flashcardName", state.name);
+  $("nameInput").value = ""; $("nameInput").style.borderColor = "";
+  syncNamePick(); updateNotes();
+});
+$("nameInput").oninput = e => {
+  state.name = e.target.value; e.target.style.borderColor = "";
+  localStorage.setItem("flashcardName", state.name);
+  syncNamePick(); updateNotes();
+};
 buildCardList(); refreshSavedList(); buildQuick();
 $("adjustBtn").onclick = () => {
   const closed = $("advanced").classList.toggle("hidden");
