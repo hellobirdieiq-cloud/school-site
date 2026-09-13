@@ -102,7 +102,7 @@
 
 
   <h2 class="sect">Start a quiz</h2>
-  <p class="small" style="margin:0 0 10px">Every word, 4 choices, see the meaning and pick the word.</p>
+  <p class="small" style="margin:0 0 10px">Every word, 6 choices, see the meaning and pick the word.</p>
   <div id="quickDecks"></div>
 
   <div id="quickSaved" class="hidden">
@@ -143,9 +143,9 @@
   <div id="nSection">
   <h2>How many choices</h2>
   <div class="row seg" id="nPick">
-    <button data-v="4" aria-pressed="true">4</button>
+    <button data-v="4" aria-pressed="false">4</button>
+    <button data-v="6" aria-pressed="true">6</button>
     <button data-v="8" aria-pressed="false">8</button>
-    <button data-v="12" aria-pressed="false">12</button>
   </div>
   <p class="small" id="nNote"></p>
   </div>
@@ -297,7 +297,7 @@ const DECK_RENAME = { "Science": "Science 1-1",
 // ---------- END DATA ----------
 
 const $ = id => document.getElementById(id);
-const state = { deck: Object.keys(DECKS)[0], mode: "def2word", n: 4, selected: new Set(), queue: [], i: 0, right: 0, missed: [], name: "" };
+const state = { deck: Object.keys(DECKS)[0], mode: "def2word", n: 6, selected: new Set(), queue: [], i: 0, right: 0, missed: [], name: "" };
 const SKEY = "flashcardSessions";
 let session = null, tStart = 0, tick = null;
 function loadSessions(){
@@ -410,7 +410,7 @@ function makeDeckBtn(name){
       return;
     }
     if(!needName()) return;
-    applySettings({deck:name, mode:"def2word", n:4, selected: DECKS[name].map((_,i)=>i)});
+    applySettings({deck:name, mode:"def2word", n:6, selected: DECKS[name].map((_,i)=>i)});
     loadedTest = null; refreshSavedList(); startTest(state.selected);
   };
   return b;
