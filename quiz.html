@@ -71,6 +71,8 @@
   .quick button{text-align:left;padding:18px 20px;font-size:22px;font-weight:700;border-color:var(--ink)}
   .quick button small{display:block;font-size:15px;font-weight:400;color:#9aa6c2;margin-top:4px}
   .quick button:hover{border-color:var(--mark)}
+  .quick button[aria-pressed="true"]{background:var(--mark);color:#0f1626;border-color:var(--mark)}
+  .quick button[aria-pressed="true"] small{color:#0f1626}
   select{font:inherit;color:var(--ink);background:var(--soft);border:2px solid var(--line);border-radius:12px;padding:12px 14px;max-width:320px}
   input[type=text]{font:inherit;color:var(--ink);background:var(--soft);border:2px solid var(--line);border-radius:12px;padding:12px 14px;width:100%;max-width:320px}
   table{border-collapse:collapse;width:100%;margin-top:8px}
@@ -98,15 +100,11 @@
     <div class="quick" id="quickSavedList"></div>
   </div>
 
+  <p class="small hidden" id="pickHint">Settings open: tap a quiz to choose its deck, or a saved test to edit it.</p>
+
   <p class="row" style="margin-top:28px"><button id="resultsBtn">Results</button><button id="adjustBtn" aria-expanded="false">Adjust settings</button></p>
 
   <div id="advanced" class="hidden">
-  <h2 id="savedTitle">Save a test</h2>
-  <p class="small" id="savedHelp">Set up the deck, test type, choices, and cards below, then save it so you don't have to pick them again.</p>
-  <div class="row" id="pickRow">
-    <select id="savedPick"><option value="">— pick a saved test —</option></select>
-    <button id="loadBtn">Load</button>
-  </div>
   <p class="small" id="loadedNote"></p>
   <div class="row" style="margin-top:8px" id="actionRow">
     <button id="saveNewBtn">Save as new test</button>
@@ -120,9 +118,6 @@
     <button id="nameCancelBtn">Cancel</button>
   </div>
   <p class="small" id="nameErr" style="color:var(--no)"></p>
-
-  <h2>Deck</h2>
-  <div class="row seg" id="deckPick"></div>
 
   <h2>Kind of test</h2>
   <div class="row seg" id="modePick">
@@ -297,19 +292,22 @@ function loadTests(){
 function storeTests(t){ localStorage.setItem(TKEY, JSON.stringify(t)); }
 function currentSettings(){ return { deck: state.deck, mode: state.mode, n: state.n, selected: [...state.selected].sort((a,b)=>a-b) }; }
 function refreshSavedList(){
-  const tests = loadTests(), names = Object.keys(tests).sort();
-  const sel = $("savedPick"); const cur = sel.value;
-  sel.innerHTML = '<option value="">— pick a saved test —</option>' +
-    names.map(n => `<option value="${n.replace(/"/g,'&quot;')}">${n}</option>`).join("");
-  sel.value = cur;
-  const any = names.length > 0, has = loadedTest !== null;
-  $("savedTitle").textContent = any ? "Pick a saved test" : "Save a test";
-  $("savedHelp").classList.toggle("hidden", any);
-  $("pickRow").classList.toggle("hidden", !any);
+  // Manages the action buttons, loaded note, and the top saved-test cards.
+  const has = loadedTest !== null;
   ["updateBtn","renameBtn","deleteBtn"].forEach(id => $(id).classList.toggle("hidden", !has));
   $("deleteBtn").textContent = "Delete";
   $("loadedNote").textContent = has ? `Loaded: "${loadedTest}". Change anything, then press Update test.` : "";
   if($("quickSavedList")) syncQuickSaved();
+}
+function settingsOpen(){ return !$("advanced").classList.contains("hidden"); }
+function markQuickSelection(){
+  document.querySelectorAll("#quickDecks button, #quickSavedList button")
+    .forEach(b => b.removeAttribute("aria-pressed"));
+  if(!settingsOpen()) return;
+  const target = loadedTest !== null
+    ? document.querySelector(`#quickSavedList button[data-test="${CSS.escape(loadedTest)}"]`)
+    : document.querySelector(`#quickDecks button[data-deck="${CSS.escape(state.deck)}"]`);
+  if(target) target.setAttribute("aria-pressed", "true");
 }
 let nameMode = null; // "new" or "rename"
 function openNameRow(mode, preset){
@@ -330,8 +328,7 @@ function commitName(){
     if(name !== loadedTest && t[name]){ $("nameErr").textContent = `"${name}" already exists.`; return; }
     t[name] = t[loadedTest]; if(name !== loadedTest) delete t[loadedTest];
   }
-  storeTests(t); loadedTest = name; closeNameRow(); refreshSavedList(); $("savedPick").value = name;
-  $("loadedNote").textContent = nameMode === null && name ? `Saved "${name}".` : "";
+  storeTests(t); loadedTest = name; closeNameRow(); refreshSavedList(); markQuickSelection();
   $("loadedNote").textContent = `Saved "${name}".`;
 }
 function syncQuickSaved(){
@@ -341,8 +338,16 @@ function syncQuickSaved(){
   names.forEach(name => {
     const t = tests[name]; if(!DECKS[t.deck]) return;
     const b = document.createElement("button");
+    b.dataset.test = name;
     b.innerHTML = `${name}<small>${t.deck} · ${t.selected.length} words · ${t.n} choices · ${MODE_LABEL[t.mode]}</small>`;
-    b.onclick = () => { if(!needName()) return; loadedTest = name; applySettings(t); refreshSavedList(); startTest(state.selected); };
+    b.onclick = () => {
+      if(settingsOpen()){   // load into settings for editing, don't start
+        loadedTest = name; applySettings(t); refreshSavedList(); markQuickSelection();
+        return;
+      }
+      if(!needName()) return;
+      loadedTest = name; applySettings(t); refreshSavedList(); startTest(state.selected);
+    };
     sb.appendChild(b);
   });
 }
@@ -350,8 +355,18 @@ function buildQuick(){
   const box = $("quickDecks"); box.innerHTML = "";
   Object.keys(DECKS).forEach(name => {
     const b = document.createElement("button");
+    b.dataset.deck = name;
     b.innerHTML = `${name}<small>${DECKS[name].length} words</small>`;
-    b.onclick = () => { if(!needName()) return; applySettings({deck:name, mode:"def2word", n:4, selected: DECKS[name].map((_,i)=>i)}); loadedTest = null; refreshSavedList(); startTest(state.selected); };
+    b.onclick = () => {
+      if(settingsOpen()){   // choose this deck for the settings, don't start
+        state.deck = name; loadedTest = null;
+        buildCardList(); refreshSavedList(); markQuickSelection();
+        return;
+      }
+      if(!needName()) return;
+      applySettings({deck:name, mode:"def2word", n:4, selected: DECKS[name].map((_,i)=>i)});
+      loadedTest = null; refreshSavedList(); startTest(state.selected);
+    };
     box.appendChild(b);
   });
   syncQuickSaved();
@@ -364,7 +379,7 @@ function needName(){
 function pressSeg(id, v){ [...$(id).children].forEach(b => b.setAttribute("aria-pressed", b.dataset.v === String(v))); }
 function applySettings(s){
   state.deck = s.deck; state.mode = s.mode; state.n = s.n;
-  pressSeg("deckPick", s.deck); pressSeg("nPick", s.n);
+  pressSeg("nPick", s.n);
   if(isType(s.mode)){ pressSeg("modePick", "type"); pressSeg("typePick", s.mode); }
   else pressSeg("modePick", s.mode);
   syncModeUI();
@@ -438,19 +453,14 @@ function segment(id, onPick){
   });
 }
 
-function buildDeckPicker(){
-  const box = $("deckPick"); box.innerHTML = "";
-  Object.keys(DECKS).forEach((name, k) => {
-    const b = document.createElement("button");
-    b.textContent = `${name} (${DECKS[name].length})`; b.dataset.v = name;
-    b.setAttribute("aria-pressed", k===0); box.appendChild(b);
-  });
-}
-
 function buildCardList(){
   const box = $("cardList"); box.innerHTML = "";
   state.selected = new Set(DECKS[state.deck].map((_,i)=>i));
-  DECKS[state.deck].forEach(([word], i) => {
+  // alphabetical by word; data-i keeps the deck index so saved selections
+  // still round-trip. Question order stays shuffled at start time.
+  DECKS[state.deck].map(([word], i) => [word, i])
+    .sort((a, b) => a[0].localeCompare(b[0]))
+    .forEach(([word, i]) => {
     const l = document.createElement("label");
     l.innerHTML = `<input type="checkbox" checked data-i="${i}"><span>${word}</span>`;
     box.appendChild(l);
@@ -614,17 +624,13 @@ function finish(){
 state.name = localStorage.getItem("flashcardName") || "";
 $("nameInput").value = state.name;
 $("nameInput").oninput = e => { state.name = e.target.value; e.target.style.borderColor = ""; localStorage.setItem("flashcardName", state.name); updateNotes(); };
-buildDeckPicker(); buildCardList(); refreshSavedList(); buildQuick();
+buildCardList(); refreshSavedList(); buildQuick();
 $("adjustBtn").onclick = () => {
-  const open = $("advanced").classList.toggle("hidden");
-  $("adjustBtn").setAttribute("aria-expanded", String(!open));
-  $("adjustBtn").textContent = open ? "Adjust settings" : "Hide settings";
-};
-$("loadBtn").onclick = () => {
-  const name = $("savedPick").value; if(!name) return;
-  const t = loadTests()[name]; if(!t) return;
-  if(!DECKS[t.deck]){ $("loadedNote").textContent = `The deck "${t.deck}" no longer exists.`; return; }
-  loadedTest = name; applySettings(t); refreshSavedList();
+  const closed = $("advanced").classList.toggle("hidden");
+  $("adjustBtn").setAttribute("aria-expanded", String(!closed));
+  $("adjustBtn").textContent = closed ? "Adjust settings" : "Hide settings";
+  $("pickHint").classList.toggle("hidden", closed);
+  markQuickSelection();   // pre-select current deck (or clear marks on close)
 };
 $("saveNewBtn").onclick = () => openNameRow("new", "");
 $("renameBtn").onclick = () => openNameRow("rename", loadedTest);
@@ -638,9 +644,9 @@ $("updateBtn").onclick = () => {
 $("deleteBtn").onclick = () => {
   const b = $("deleteBtn");
   if(b.textContent !== "Really delete?"){ b.textContent = "Really delete?"; return; }
-  const t = loadTests(); delete t[loadedTest]; storeTests(t); loadedTest = null; $("savedPick").value = ""; refreshSavedList();
+  const t = loadTests(); delete t[loadedTest]; storeTests(t); loadedTest = null;
+  refreshSavedList(); markQuickSelection();
 };
-segment("deckPick", v => { state.deck = v; buildCardList(); });
 segment("modePick", v => {
   if(v === "type"){
     const tv = [...$("typePick").children].find(b => b.getAttribute("aria-pressed") === "true");
