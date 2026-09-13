@@ -350,7 +350,9 @@ function renderResults(){
   $("toggleHidden").classList.toggle("hidden", nHidden === 0 && !showHidden);
   $("toggleHidden").textContent = showHidden ? "Hide hidden" : "Show hidden";
   const all = showHidden ? mine : mine.filter(s => !s.hidden);
-  if(!all.length){ $("resultsList").innerHTML = '<p class="small">No tests yet.</p>'; return; }
+  if(!all.length){ $("resultsList").innerHTML = nHidden
+    ? `<p class="small">All ${nHidden} tests are hidden — tap “Show hidden”.</p>`
+    : '<p class="small">No tests yet.</p>'; return; }
   $("resultsList").innerHTML = all.map(s => {
     const answered = s.answers.length, wrong = answered - s.right;
     const status = s.finished ? "finished" : `stopped after ${answered} of ${s.total}`;
@@ -526,7 +528,8 @@ $("toggleHidden").onclick = () => { showHidden = !showHidden; renderResults(); }
 // click that can follow a touch swipe.
 $("resultsList").addEventListener("click", e => {
   const w = e.target.closest(".reswrap");
-  if(w && w.dataset.swiped){ delete w.dataset.swiped; e.preventDefault(); e.stopPropagation(); return; }
+  if(w && w.dataset.swiped){ delete w.dataset.swiped;
+    if(!e.target.closest(".swipeact")){ e.preventDefault(); e.stopPropagation(); return; } }
   const b = e.target.closest(".hidebtn, .swipeact");
   if(!b || !w) return;
   e.preventDefault(); e.stopPropagation();
