@@ -273,13 +273,32 @@ const DECKS = {
     ["Adoration","Telling God how amazing and great He is, just because He's God. Example: \"I praise You, God.\""],
     ["Contrition","Telling God you're sorry for something wrong you did. Example: \"I'm sorry for yelling at my mom.\""],
     ["Thanksgiving","Saying thank you to God for the good things He gives you. Example: \"Thank you for my dog.\""]
+  ],
+  "Religion Chapter 1 Prayer Quiz": [
+    ["Very holy or very honored","What does hallowed mean?"],
+    ["The Lord’s Prayer","What is another name for the Our Father prayer?"],
+    ["Jesus","Who taught us to pray the Our Father?"],
+    ["Prayer","What is lifting our hearts, minds, and souls to God called?"],
+    ["Adoration","What type of prayer shows appreciation for God’s goodness and love?"],
+    ["Thanksgiving","What type of prayer thanks God for the many blessings in our lives?"],
+    ["Contrition","What type of prayer asks God for forgiveness?"],
+    ["Petition","What type of prayer asks God for help or for something we want or need?"],
+    ["Intercession","What is a prayer on behalf of others called?"],
+    ["Mental prayers","What are prayers in our thoughts called?"],
+    ["Informal prayers","What are prayers we make up by speaking to God in our own words called?"],
+    ["The Mass","What is the greatest form of prayer?"],
+    ["A disciple","What is a follower of Jesus Christ and His teachings called?"],
+    ["Evangelization","What is spreading the Gospels or sharing the Good News of Jesus called?"],
+    ["The Divine Office","What is the prayer of the Church that uses readings from Scripture and is also called the Liturgy of the Hours?"],
+    ["God","Who should people pray to?"],
+    ["To help us focus our minds and hearts on God","Why do we fold our hands when we pray?"]
   ]
 };
 // Class groupings for the start screen. Decks not listed here fall under
 // "Other" so nothing disappears if a name is mistyped.
 const SUBJECTS = { "Geography": ["Geography 1"],
                    "Science": ["Science 1-1","Science 1-2","Science 1-3"],
-                   "Religion": ["Religion 1"] };
+                   "Religion": ["Religion 1", "Religion Chapter 1 Prayer Quiz"] };
 const classOf = deck =>
   Object.keys(SUBJECTS).find(c => SUBJECTS[c].includes(deck)) || "Other";
 const CLASS_COLOR = { "Geography": "--c-geo", "Science": "--c-sci",
