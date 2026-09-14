@@ -38,6 +38,14 @@
   .w[data-s="2"]{text-decoration:underline;text-decoration-style:double}
   .w.wrong[data-s="1"],.w.wrong[data-s="2"]{text-decoration-color:var(--no)}
   .w.missed{text-decoration:underline dotted var(--no)}
+  /* post-Check feedback (defined after the data-s rules so they override the
+     kid's own underline): correct style shown in red dotted */
+  .w.missed1{text-decoration:underline dotted var(--no)}
+  .w.missed2{text-decoration:underline dotted var(--no);
+    border-bottom:2px dotted var(--no);padding-bottom:8px}
+  .w.struckw{text-decoration:line-through solid var(--no)}
+  .gradenote{font-size:16px;color:#9aa6c2;margin:0 0 10px;min-height:1em}
+  .gradenote b{color:var(--no);font-weight:700}
   .legend{margin:0 0 14px}
   .legend span{margin-right:16px}
   .u1{text-decoration:underline;text-underline-offset:3px}
@@ -63,6 +71,7 @@
     <div class="bar"><div id="progressBar"></div></div>
     <p class="sentence" id="sentence"></p>
     <div class="verdict" id="verdict"></div>
+    <p class="gradenote" id="gradeNote"></p>
     <p class="row">
       <button class="primary" id="checkBtn">Check</button>
       <button class="hidden" id="nextBtn">Next sentence</button>
@@ -114,6 +123,7 @@ function renderSentence(){
     tokens.push(sp);
   });
   $("verdict").textContent = ""; $("verdict").className = "verdict";
+  $("gradeNote").innerHTML = "";
   $("checkBtn").classList.toggle("hidden", graded);
   $("nextBtn").classList.toggle("hidden", !graded);
   $("nextBtn").textContent = cur + 1 < DATA.sentences.length ? "Next sentence" : "See my score";
@@ -175,23 +185,48 @@ function grade(){
     }
     return null;
   }
+  // pass 1: correct-type matches keep the kid's underlines
+  const leftover = [];
   runs.forEach(r => {
     const want = r.s === 1 ? "C" : "P";
     const seg = segment(r.words, 0, want, new Set());
     if(seg){ seg.forEach(ki => keyLeft[ki].matched = true);
              for(let k = r.start; k <= r.end; k++) claimed.add(k); }
-    else wrongRuns.push(r);
+    else leftover.push(r);
   });
-  const missedIdx = [];
+  // pass 2: wrong TYPE (single where key says double, or vice versa) —
+  // treated like a miss: correct style drawn in red dotted
+  const wrongType = [], notNoun = [];
+  leftover.forEach(r => {
+    const other = r.s === 1 ? "P" : "C";
+    const seg = segment(r.words, 0, other, new Set());
+    if(seg){
+      let pos = r.start;
+      seg.forEach(ki => {
+        const kn = keyLeft[ki]; kn.matched = true;
+        const idxs = [];
+        for(let j = 0; j < kn.w.length; j++){ idxs.push(pos + j); claimed.add(pos + j); }
+        pos += kn.w.length;
+        wrongType.push({ i: idxs, t: kn.t });
+      });
+    } else {
+      const idxs = []; for(let k = r.start; k <= r.end; k++) idxs.push(k);
+      notNoun.push(idxs);
+    }
+  });
+  // pass 3: missed nouns — correct style in red dotted
+  const missed = [];
   keyLeft.filter(kn => !kn.matched).forEach(kn => {
     const at = findSpan(kn.w, claimed);
-    if(at >= 0){ for(let j = 0; j < kn.w.length; j++){ missedIdx.push(at + j); claimed.add(at + j); } }
+    if(at >= 0){
+      const idxs = [];
+      for(let j = 0; j < kn.w.length; j++){ idxs.push(at + j); claimed.add(at + j); }
+      missed.push({ i: idxs, t: kn.t });
+    }
   });
-  const result = {
-    correct: wrongRuns.length === 0 && keyLeft.every(kn => kn.matched),
-    wrong: wrongRuns.flatMap(r => { const a = []; for(let k = r.start; k <= r.end; k++) a.push(k); return a; }),
-    missed: missedIdx
-  };
+  const result = { v: 2,
+    correct: notNoun.length === 0 && wrongType.length === 0 && missed.length === 0,
+    missed, wrongType, notNoun };
   const p = loadP();
   p.states[s.n] = tokens.map(sp => +sp.dataset.s);
   p.results[s.n] = result;
@@ -203,13 +238,39 @@ function grade(){
   drawScore();
 }
 
+function labelOf(idxs){
+  return idxs.map(k => tokens[k] ? tokens[k].textContent.replace(/^\W+|\W+$/g, "") : "")
+             .filter(Boolean).join(" ");
+}
+const TYPE_WORD = { C: "common", P: "proper" };
 function applyGrade(result, restoring){
-  result.wrong.forEach(k => tokens[k] && tokens[k].classList.add("wrong"));
-  result.missed.forEach(k => tokens[k] && tokens[k].classList.add("missed"));
-  $("verdict").textContent = result.correct ? "Correct!" :
-    (result.missed.length && result.wrong.length ? "Some missed (dotted) and some wrong (red)." :
-     result.missed.length ? "You missed the dotted ones." : "The red ones aren't right.");
+  $("gradeNote").innerHTML = "";
+  if(!result.v){   // legacy records from the first version
+    (result.wrong || []).forEach(k => tokens[k] && tokens[k].classList.add("wrong"));
+    (result.missed || []).forEach(k => tokens[k] && tokens[k].classList.add("missed"));
+    $("verdict").textContent = result.correct ? "Correct!" : "Not quite.";
+    $("verdict").className = "verdict " + (result.correct ? "ok" : "bad");
+    return;
+  }
+  result.notNoun.forEach(idxs => idxs.forEach(k => tokens[k] && tokens[k].classList.add("struckw")));
+  [...result.missed, ...result.wrongType].forEach(m => m.i.forEach(k => {
+    if(!tokens[k]) return;
+    tokens[k].classList.remove("struckw");
+    tokens[k].dataset.s = 0;                 // wrong-type: kid's underline removed
+    tokens[k].classList.add(m.t === "C" ? "missed1" : "missed2");
+  }));
+  $("verdict").textContent = result.correct ? "Correct!" : "Not quite.";
   $("verdict").className = "verdict " + (result.correct ? "ok" : "bad");
+  if(!result.correct){
+    const parts = [];
+    if(result.missed.length)
+      parts.push("<b>Missed:</b> " + result.missed.map(m => `${labelOf(m.i)} (${TYPE_WORD[m.t]})`).join(", "));
+    if(result.wrongType.length)
+      parts.push("<b>Wrong type:</b> " + result.wrongType.map(m => `${labelOf(m.i)} (${TYPE_WORD[m.t]})`).join(", "));
+    if(result.notNoun.length)
+      parts.push("<b>Not a noun:</b> " + result.notNoun.map(labelOf).join(", "));
+    $("gradeNote").innerHTML = parts.join(" · ");
+  }
 }
 
 function showFinal(){
