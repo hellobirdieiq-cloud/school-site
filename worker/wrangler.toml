@@ -1,0 +1,10 @@
+name = "school-sync"
+main = "worker.js"
+compatibility_date = "2026-09-01"
+
+[[kv_namespaces]]
+binding = "RESULTS"
+id = "6de45e18c55c4083aacd328aba6b625c"
+
+[vars]
+TOK = "2cBf3scAPtUbxtssRBXcPYHuB8C_xxU6"

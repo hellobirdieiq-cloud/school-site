@@ -896,10 +896,8 @@ function finish(){
 }
 
 // ================= NOUNS QUIZ ENGINE =================
-// DUPLICATED from nouns.html — keep in sync.
-// (nouns.html is shared and must not change; this is the same tokenizer,
-// tap-cycle, run/segmentation grader, red feedback and summary, adapted to
-// run one 20-sentence set at a time with its own storage key.)
+// The single nouns grader for the site (tokenizer, tap-cycle, run/segmentation
+// matching, red feedback, summary), running one 20-sentence set at a time.
 let nAll = null, nSet = null, nList = [], nCur = 0, nTokens = [], nGraded = false;
 let nStore = "";   // per-nickname progress key, fixed when a set starts
 const nNorm = w => w.toLowerCase().replace(/^[^a-z0-9]+|[^a-z0-9]+$/g, "");
@@ -1110,7 +1108,7 @@ function nApplyGrade(result){
     $("nGradeNote").innerHTML = parts.join(" · ");
   }
 }
-// ============== end duplicated grader block ==============
+// ============== end nouns quiz engine ==============
 
 function nShowFinal(){
   const s = nScoreNow();
