@@ -892,6 +892,17 @@ function fmtDef(text){
   if(k === -1) return text;
   return `${text.slice(0, k).trim()}<span class="ex">${text.slice(k)}</span>`;
 }
+// In "show meaning, pick the word" mode the definition often contains the answer
+// word. Hide every whole-word occurrence of the term and its simple plural
+// (term+"s"/"es"), case-insensitive; multi-word terms match as a phrase. Display
+// only — the stored deck text is never changed. Returns masked plain text.
+const MASK_BLANK = "____";
+function maskAnswer(text, term){
+  const t = String(term || "").trim();
+  if(!t) return text;
+  const esc = t.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  return String(text).replace(new RegExp("\\b" + esc + "(?:es|s)?\\b", "gi"), MASK_BLANK);
+}
 function shuffle(a){ for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];} return a; }
 
 function segment(id, onPick){
@@ -948,9 +959,15 @@ function showQuestion(){
   const askDef = state.mode === "def2word" || state.mode === "typeWord";
   $("progressText").textContent = `Question ${state.i+1} of ${state.queue.length}`;
   $("progressBar").style.width = `${(state.i/state.queue.length)*100}%`;
-  if(askDef) $("prompt").innerHTML = fmtDef(card[1]);
-  else $("prompt").textContent = card[0];
-  $("prompt").dataset.say = askDef ? card[1] : card[0];   // clean text for TTS
+  if(askDef){
+    // mask the answer word in the shown meaning; TTS says "blank" per ____
+    const shown = maskAnswer(card[1], card[0]);
+    $("prompt").innerHTML = fmtDef(shown);
+    $("prompt").dataset.say = shown.split(MASK_BLANK).join("blank");
+  } else {
+    $("prompt").textContent = card[0];
+    $("prompt").dataset.say = card[0];
+  }
   $("verdict").textContent = ""; $("verdict").className = "verdict";
   $("nextBtn").classList.add("hidden");
   ttsStop();
