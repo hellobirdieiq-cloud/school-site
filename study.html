@@ -877,11 +877,14 @@ function showQuestion(){
     .filter(i => i !== idx && same(choiceText(i)) !== correctText)).slice(0, nChoices-1);
   const options = shuffle([idx, ...others]);
   const box = $("choices"); box.innerHTML = "";
-  options.forEach(i => {
+  const letters = "ABCDEFGH";
+  options.forEach((i, oi) => {
     const b = document.createElement("button");
     b.dataset.k = i;
-    if(askDef){ b.textContent = deck[i][0]; b.dataset.say = deck[i][0]; }
-    else { b.innerHTML = fmtDef(deck[i][1]); b.dataset.say = deck[i][1]; }
+    // visible A./B./… prefix matches the order "Read choices" speaks; the
+    // spoken text uses dataset.say (letter-free) + the same position letter.
+    if(askDef){ b.textContent = `${letters[oi]}. ${deck[i][0]}`; b.dataset.say = deck[i][0]; }
+    else { b.innerHTML = `${letters[oi]}. ${fmtDef(deck[i][1])}`; b.dataset.say = deck[i][1]; }
     b.onclick = () => answer(i, idx, b);
     box.appendChild(b);
   });
