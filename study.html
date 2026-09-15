@@ -617,9 +617,11 @@ function renderResults(){
       const act = s.hidden ? "Unhide" : "Hide";
       const done = s.answered ?? s.total;   // older entries lack `answered`
       const status = s.finished ? "finished" : `stopped after ${done} of ${s.total}`;
+      const cont = (!s.finished && !s.hidden)
+        ? '<button class="contbtn" type="button">Continue</button>' : "";
       const items = (s.sentences || []).map(x =>
         `<li class="${x.right?'ok':'bad'}"><span class="mk">${x.right?'✓':'✗'}</span><span>Sentence ${x.n}</span></li>`).join("");
-      return `<div class="reswrap${s.hidden ? ' dim' : ''}" data-id="${s.id}"><button class="swipeact" type="button">${act}</button><details class="res"><summary><span><span class="sc">${s.right}/${done}</span> <span class="meta">${done - s.right} wrong</span><br><span class="meta">${s.name} · ${s.deck} · underline the nouns · ${status}</span></span><span class="meta" style="text-align:right">${new Date(s.when).toLocaleString([], {dateStyle:"short", timeStyle:"short"})}</span><button class="hidebtn" type="button">${act}</button></summary><ul>${items}</ul></details></div>`;
+      return `<div class="reswrap${s.hidden ? ' dim' : ''}" data-id="${s.id}"><button class="swipeact" type="button">${act}</button><details class="res"><summary><span><span class="sc">${s.right}/${done}</span> <span class="meta">${done - s.right} wrong</span><br><span class="meta">${s.name} · ${s.deck} · underline the nouns · ${status}</span></span><span class="meta" style="text-align:right">${new Date(s.when).toLocaleString([], {dateStyle:"short", timeStyle:"short"})}</span>${cont}<button class="hidebtn" type="button">${act}</button></summary><ul>${items}</ul></details></div>`;
     }
     const answered = s.answers.length, wrong = answered - s.right;
     const status = s.finished ? "finished" : `stopped after ${answered} of ${s.total}`;
@@ -1003,7 +1005,7 @@ function nGrade(){
   // live entry in the Results store from the FIRST checked sentence:
   // shows "stopped after X of 20" until it flips to finished
   const gradedList = nList.filter(x => p.results[x.n]);
-  const entry = { id: p.sid, kind: "nouns", name: state.name.trim(), deck: nSet.label,
+  const entry = { id: p.sid, kind: "nouns", name: state.name.trim(), deck: nSet.label, setk: nSet.k,
     total: nList.length, answered: gradedList.length,
     right: gradedList.filter(x => p.results[x.n].correct).length,
     finished: gradedList.length === nList.length, when: p.when,
@@ -1200,7 +1202,23 @@ $("resultsList").addEventListener("click", e => {
   if(w && w.dataset.swiped){ delete w.dataset.swiped;
     if(!e.target.closest(".swipeact")){ e.preventDefault(); e.stopPropagation(); return; } }
   const c = e.target.closest(".contbtn");
-  if(c && w){ e.preventDefault(); e.stopPropagation(); resumeSession(w.dataset.id); return; }
+  if(c && w){
+    e.preventDefault(); e.stopPropagation();
+    const sess = loadSessions().find(x => x.id === w.dataset.id);
+    if(sess && sess.kind === "nouns"){
+      const k = sess.setk || parseInt((sess.deck.match(/\d+/) || [1])[0], 10);
+      const set = NOUN_SETS.find(x => x.k === k);
+      if(set){
+        state.name = sess.name;             // resume under the entry's nickname
+        $("nameInput").value = NAME_PILLS.includes(sess.name) ? "" : sess.name;
+        localStorage.setItem("flashcardName", sess.name); syncNamePick();
+        $("results").classList.add("hidden"); $("setup").classList.remove("hidden");
+        startNounSet(set);
+      }
+      return;
+    }
+    resumeSession(w.dataset.id); return;
+  }
   const b = e.target.closest(".hidebtn, .swipeact");
   if(!b || !w) return;
   e.preventDefault(); e.stopPropagation();
