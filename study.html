@@ -108,6 +108,15 @@
   .nscore{font-weight:800;font-size:20px;background:var(--soft);padding:4px 14px;
     border-radius:999px;white-space:nowrap}
   .finalscore{font-size:56px;font-weight:800;margin:12px 0}
+  /* read-aloud speaker buttons */
+  .spk{font:inherit;cursor:pointer;background:var(--soft);color:var(--ink);
+    border:2px solid var(--line);border-radius:10px;min-width:44px;min-height:44px;
+    padding:6px 10px;line-height:1;flex:none;vertical-align:middle}
+  .spk:hover{border-color:var(--ink)}
+  .spk.on{background:var(--mark);color:#0f1626;border-color:var(--mark)}
+  .spk.mini{min-width:38px;min-height:38px;font-size:16px;padding:4px 8px}
+  .choicewrap{display:flex;align-items:center;gap:8px}
+  .choicewrap .choicebtn{flex:1}
 </style>
 </head>
 <body>
@@ -173,6 +182,18 @@
   <p class="small" id="nNote"></p>
   </div>
 
+  <h2>Read aloud</h2>
+  <div class="row">
+    <select id="ttsVoice"><option value="">Default voice</option></select>
+    <div class="row seg" id="ttsRate">
+      <button data-v="0.8" aria-pressed="false">Slow</button>
+      <button data-v="1" aria-pressed="true">Normal</button>
+      <button data-v="1.2" aria-pressed="false">Fast</button>
+    </div>
+    <button class="spk mini" id="ttsTest" title="Test the voice">🔊</button>
+  </div>
+  <p class="small" id="ttsNote">Tap a 🔊 in a quiz to hear it read. Tap again to stop.</p>
+
   <h2>Cards to test</h2>
   <div class="row">
     <button id="allBtn">Select all</button>
@@ -195,7 +216,10 @@
       Tap a word to underline it.<br>
       Common noun – <span class="u1">once</span><br>
       Proper noun – <span class="u2">twice</span></p>
-    <p class="nsentence" id="nSentence"></p>
+    <div class="row" style="align-items:flex-start;gap:10px">
+      <button class="spk" id="nSpeak" title="Read the sentence" aria-label="Read the sentence">🔊</button>
+      <p class="nsentence" id="nSentence" style="flex:1;margin:0 0 14px"></p>
+    </div>
     <div class="verdict" id="nVerdict"></div>
     <p class="gradenote" id="nGradeNote"></p>
     <p class="row">
@@ -218,7 +242,11 @@
 <section id="quiz" class="hidden">
   <div class="row" style="justify-content:space-between"><span class="small" id="progressText"></span><span class="timer" id="timer">0:00</span></div>
   <div class="bar"><div id="progressBar"></div></div>
-  <div class="prompt" id="prompt"></div>
+  <div class="row" style="align-items:flex-start;gap:10px">
+    <button class="spk" id="promptSpeak" title="Read the question" aria-label="Read the question">🔊</button>
+    <div class="prompt" id="prompt" style="flex:1;margin:14px 0 12px"></div>
+  </div>
+  <p class="row" style="margin:0 0 8px"><button class="spk mini" id="choicesSpeak" title="Read all the choices">🔊 Read choices</button></p>
   <div class="choices" id="choices"></div>
   <div class="verdict" id="verdict"></div>
   <p class="row"><button class="primary hidden" id="nextBtn">Next</button><button id="pauseBtn">Pause test</button></p>
@@ -380,6 +408,57 @@ const DECK_RENAME = { "Science": "Science 1-1",
 // ---------- END DATA ----------
 
 const $ = id => document.getElementById(id);
+
+// ---------- read aloud (built-in speechSynthesis) ----------
+const TTS = window.speechSynthesis || null;
+let ttsVoices = [], ttsCurBtn = null;
+// expand abbreviations for SPEECH ONLY (screen text unchanged)
+function ttsNormalize(t){
+  return String(t)
+    .replace(/\bMrs\./g, "Missus").replace(/\bMr\./g, "Mister")
+    .replace(/\bMs\./g, "Miss").replace(/\bDr\./g, "Doctor")
+    .replace(/\bSt\./g, "Saint").replace(/\bJr\./g, "Junior")
+    .replace(/\bGPS\b/g, "G P S")
+    .replace(/\bU\.S\.\b/g, "U S").replace(/\s+/g, " ").trim();
+}
+function ttsPickVoice(){
+  const want = localStorage.getItem("ttsVoice") || "";
+  return ttsVoices.find(v => v.voiceURI === want)
+    || ttsVoices.find(v => v.lang === "en-US" && /Samantha/i.test(v.name))
+    || ttsVoices.find(v => v.lang && v.lang.startsWith("en"))
+    || ttsVoices[0] || null;
+}
+function ttsStop(){
+  if(TTS) TTS.cancel();
+  document.querySelectorAll(".spk.on").forEach(b => b.classList.remove("on"));
+  ttsCurBtn = null;
+}
+// speak `text`, driven by button `btn`. Tapping the SAME active button stops;
+// tapping a different one stops the old and starts the new.
+function speak(text, btn){
+  if(!TTS) return;
+  const wasActive = (ttsCurBtn === btn) && TTS.speaking;
+  ttsStop();
+  if(wasActive || !text.trim()) return;      // toggle off / nothing to say
+  const u = new SpeechSynthesisUtterance(ttsNormalize(text));
+  const v = ttsPickVoice(); if(v){ u.voice = v; u.lang = v.lang; }
+  u.rate = parseFloat(localStorage.getItem("ttsRate")) || 1;
+  u.onend = u.onerror = () => { if(btn) btn.classList.remove("on"); if(ttsCurBtn === btn) ttsCurBtn = null; };
+  if(btn) btn.classList.add("on");
+  ttsCurBtn = btn;
+  TTS.speak(u);
+}
+function loadVoices(){
+  if(!TTS) return;
+  ttsVoices = TTS.getVoices().filter(v => v.lang && v.lang.toLowerCase().startsWith("en"));
+  const sel = $("ttsVoice"); if(!sel) return;
+  const cur = localStorage.getItem("ttsVoice") || "";
+  sel.innerHTML = '<option value="">Default voice</option>' +
+    ttsVoices.map(v => `<option value="${v.voiceURI}">${v.name} (${v.lang})</option>`).join("");
+  sel.value = cur;
+}
+// ------------------------------------------------------------
+
 const state = { deck: Object.keys(DECKS)[0], mode: "def2word", n: 6, selected: new Set(), queue: [], i: 0, right: 0, missed: [], name: "" };
 const SKEY = "flashcardSessions";
 let session = null, tStart = 0, tick = null;
@@ -762,8 +841,11 @@ function showQuestion(){
   $("progressBar").style.width = `${(state.i/state.queue.length)*100}%`;
   if(askDef) $("prompt").innerHTML = fmtDef(card[1]);
   else $("prompt").textContent = card[0];
+  $("prompt").dataset.say = askDef ? card[1] : card[0];   // clean text for TTS
   $("verdict").textContent = ""; $("verdict").className = "verdict";
   $("nextBtn").classList.add("hidden");
+  ttsStop();
+  $("choicesSpeak").classList.toggle("hidden", isType(state.mode));
   startTimer();
 
   if(isType(state.mode)){
@@ -798,8 +880,8 @@ function showQuestion(){
   options.forEach(i => {
     const b = document.createElement("button");
     b.dataset.k = i;
-    if(askDef) b.textContent = deck[i][0];
-    else b.innerHTML = fmtDef(deck[i][1]);
+    if(askDef){ b.textContent = deck[i][0]; b.dataset.say = deck[i][0]; }
+    else { b.innerHTML = fmtDef(deck[i][1]); b.dataset.say = deck[i][1]; }
     b.onclick = () => answer(i, idx, b);
     box.appendChild(b);
   });
@@ -885,7 +967,7 @@ function answer(picked, correct, btn){
 }
 
 function finish(){
-  clearInterval(tick);
+  clearInterval(tick); ttsStop();
   $("quiz").classList.add("hidden"); $("done").classList.remove("hidden");
   const total = state.queue.length, pct = Math.round(state.right/total*100);
   $("doneTitle").textContent = `All done, ${state.name.trim()}`;
@@ -922,6 +1004,7 @@ function nDrawScore(){
   $("nProgressBar").style.width = `${(s.attempted / nList.length) * 100}%`;
 }
 function nRender(){
+  ttsStop();
   const s = nList[nCur];
   const p = nLoadP();
   nGraded = !!p.results[s.n];
@@ -1128,6 +1211,7 @@ function nShowFinal(){
   syncReconcile();   // ensure the final set state reaches the server
 }
 function nExit(){
+  ttsStop();
   $("nquiz").classList.add("hidden"); $("nplay").classList.remove("hidden");
   $("nFinal").classList.add("hidden"); $("setup").classList.remove("hidden");
   buildQuick(); markQuickSelection();     // refresh nouns badges
@@ -1233,6 +1317,30 @@ $("nameInput").oninput = e => {
   syncNamePick(); updateNotes(); buildQuick(); markQuickSelection();
 };
 buildCardList(); refreshSavedList(); buildQuick();
+
+// read-aloud wiring
+if(TTS){
+  loadVoices();
+  TTS.onvoiceschanged = loadVoices;
+  segFromSaved("ttsRate", localStorage.getItem("ttsRate") || "1");
+  $("ttsVoice").onchange = e => { localStorage.setItem("ttsVoice", e.target.value); };
+  segment("ttsRate", v => { localStorage.setItem("ttsRate", v); });
+  $("ttsTest").onclick = () => speak("This is how the reading voice sounds.", $("ttsTest"));
+  $("nSpeak").onclick = () => speak(nList[nCur] ? nList[nCur].text : "", $("nSpeak"));
+  $("promptSpeak").onclick = () => speak($("prompt").dataset.say || $("prompt").textContent, $("promptSpeak"));
+  $("choicesSpeak").onclick = () => {
+    const letters = "ABCDEFGH";
+    const parts = [...$("choices").querySelectorAll("button[data-k]")]
+      .map((b, i) => `${letters[i]}. ${b.dataset.say || b.textContent}.`);
+    speak(parts.join(" "), $("choicesSpeak"));   // periods give a pause between each
+  };
+} else {
+  // no speech support: hide all speaker UI
+  ["nSpeak","promptSpeak","choicesSpeak","ttsTest"].forEach(id => $(id) && $(id).classList.add("hidden"));
+  const n = $("ttsNote"); if(n) n.textContent = "Read-aloud isn't available in this browser.";
+}
+function segFromSaved(id, v){ [...$(id).children].forEach(b => b.setAttribute("aria-pressed", b.dataset.v === String(v))); }
+
 $("adjustBtn").onclick = () => {
   const closed = $("advanced").classList.toggle("hidden");
   $("adjustBtn").setAttribute("aria-expanded", String(!closed));
