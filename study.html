@@ -596,9 +596,11 @@ function renderResults(){
   $("resultsList").innerHTML = all.map(s => {
     if(s.kind === "nouns"){
       const act = s.hidden ? "Unhide" : "Hide";
+      const done = s.answered ?? s.total;   // older entries lack `answered`
+      const status = s.finished ? "finished" : `stopped after ${done} of ${s.total}`;
       const items = (s.sentences || []).map(x =>
         `<li class="${x.right?'ok':'bad'}"><span class="mk">${x.right?'✓':'✗'}</span><span>Sentence ${x.n}</span></li>`).join("");
-      return `<div class="reswrap${s.hidden ? ' dim' : ''}" data-id="${s.id}"><button class="swipeact" type="button">${act}</button><details class="res"><summary><span><span class="sc">${s.right}/${s.total}</span> <span class="meta">${s.total - s.right} wrong</span><br><span class="meta">${s.name} · ${s.deck} · underline the nouns · finished</span></span><span class="meta" style="text-align:right">${new Date(s.when).toLocaleString([], {dateStyle:"short", timeStyle:"short"})}</span><button class="hidebtn" type="button">${act}</button></summary><ul>${items}</ul></details></div>`;
+      return `<div class="reswrap${s.hidden ? ' dim' : ''}" data-id="${s.id}"><button class="swipeact" type="button">${act}</button><details class="res"><summary><span><span class="sc">${s.right}/${done}</span> <span class="meta">${done - s.right} wrong</span><br><span class="meta">${s.name} · ${s.deck} · underline the nouns · ${status}</span></span><span class="meta" style="text-align:right">${new Date(s.when).toLocaleString([], {dateStyle:"short", timeStyle:"short"})}</span><button class="hidebtn" type="button">${act}</button></summary><ul>${items}</ul></details></div>`;
     }
     const answered = s.answers.length, wrong = answered - s.right;
     const status = s.finished ? "finished" : `stopped after ${answered} of ${s.total}`;
@@ -954,18 +956,21 @@ function nGrade(){
   const p = nLoadP();
   p.states[s.n] = nTokens.map(sp => +sp.dataset.s);
   p.results[s.n] = result;
+  if(!p.sid){ p.sid = `nouns-${nSet.k}-${Date.now()}-${Math.random().toString(36).slice(2,6)}`;
+              p.when = Date.now(); }
   nSaveP(p);
-  // set completed (all 20 graded): record it where the Results tab looks
-  if(Object.keys(p.results).length === nList.length){
-    const all = loadSessions();
-    all.push({ id: `nouns-${nSet.k}-${Date.now()}`, kind: "nouns",
-      name: state.name.trim(), deck: nSet.label,
-      total: nList.length,
-      right: nList.filter(x => p.results[x.n] && p.results[x.n].correct).length,
-      finished: true, when: Date.now(),
-      sentences: nList.map(x => ({ n: x.n, right: !!(p.results[x.n] && p.results[x.n].correct) })) });
-    localStorage.setItem(SKEY, JSON.stringify(all.slice(-1000)));
-  }
+  // live entry in the Results store from the FIRST checked sentence:
+  // shows "stopped after X of 20" until it flips to finished
+  const gradedList = nList.filter(x => p.results[x.n]);
+  const entry = { id: p.sid, kind: "nouns", name: state.name.trim(), deck: nSet.label,
+    total: nList.length, answered: gradedList.length,
+    right: gradedList.filter(x => p.results[x.n].correct).length,
+    finished: gradedList.length === nList.length, when: p.when,
+    sentences: gradedList.map(x => ({ n: x.n, right: !!p.results[x.n].correct })) };
+  const allS = loadSessions();
+  const at = allS.findIndex(x => x.id === p.sid);
+  at >= 0 ? allS[at] = { ...allS[at], ...entry } : allS.push(entry);
+  localStorage.setItem(SKEY, JSON.stringify(allS.slice(-1000)));
   nGraded = true;
   nApplyGrade(result);
   $("nCheckBtn").classList.add("hidden");
