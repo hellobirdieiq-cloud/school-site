@@ -229,9 +229,17 @@ function grade(){
     if(at >= 0){
       const idxs = [];
       for(let j = 0; j < kn.w.length; j++){ idxs.push(at + j); claimed.add(at + j); }
-      missed.push({ i: idxs, t: kn.t });
+      missed.push({ i: idxs, t: kn.t,
+        part: idxs.some(k => +tokens[k].dataset.s > 0) });
     }
   });
+  // a marked word that's part of a missed/wrong-type noun is NOT "not a
+  // noun" — it's a partly-marked noun ("mail" in "mail carrier")
+  const fbCovered = new Set([...missed, ...wrongType].flatMap(m => m.i));
+  for(let ci = notNoun.length - 1; ci >= 0; ci--){
+    notNoun[ci] = notNoun[ci].filter(k => !fbCovered.has(k));
+    if(!notNoun[ci].length) notNoun.splice(ci, 1);
+  }
   const result = { v: 2,
     correct: notNoun.length === 0 && wrongType.length === 0 && missed.length === 0,
     missed, wrongType, notNoun };
@@ -272,7 +280,7 @@ function applyGrade(result, restoring){
   if(!result.correct){
     const parts = [];
     if(result.missed.length)
-      parts.push("<b>Missed:</b> " + result.missed.map(m => `${labelOf(m.i)} (${TYPE_WORD[m.t]})`).join(", "));
+      parts.push("<b>Missed:</b> " + result.missed.map(m => `${labelOf(m.i)} (${TYPE_WORD[m.t]}${m.part ? " — underline the whole thing" : ""})`).join(", "));
     if(result.wrongType.length)
       parts.push("<b>Wrong type:</b> " + result.wrongType.map(m => `${labelOf(m.i)} (${TYPE_WORD[m.t]})`).join(", "));
     if(result.notNoun.length)
