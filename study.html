@@ -382,6 +382,22 @@ const $ = id => document.getElementById(id);
 const state = { deck: Object.keys(DECKS)[0], mode: "def2word", n: 6, selected: new Set(), queue: [], i: 0, right: 0, missed: [], name: "" };
 const SKEY = "flashcardSessions";
 let session = null, tStart = 0, tick = null;
+// ---- results sync (Cloudflare Worker; localStorage stays the offline cache) ----
+const SYNC_URL = "https://school-sync.school-sync.workers.dev/r";
+const SYNC_TOK = "2cBf3scAPtUbxtssRBXcPYHuB8C_xxU6";
+const deviceId = localStorage.getItem("deviceId") ||
+  (localStorage.setItem("deviceId", Math.random().toString(36).slice(2, 10)),
+   localStorage.getItem("deviceId"));
+function syncPush(rec){
+  // normal fetch is reliable while the page is active (unlike a burst of
+  // keepalive requests, which the browser can drop). Anything that still
+  // fails stays in localStorage and re-uploads via syncReconcile() next load.
+  try {
+    fetch(SYNC_URL, { method: "POST",
+      headers: { "content-type": "application/json", "x-tok": SYNC_TOK },
+      body: JSON.stringify({ ...rec, dev: deviceId }) }).catch(() => {});
+  } catch(e){}
+}
 function loadSessions(){
   try {
     const a = JSON.parse(localStorage.getItem(SKEY)) || [];
@@ -390,9 +406,11 @@ function loadSessions(){
   } catch(e){ return []; }
 }
 function saveSession(){
+  session.up = Date.now();
   const all = loadSessions(); const k = all.findIndex(s => s.id === session.id);
   k >= 0 ? all[k] = session : all.push(session);
   localStorage.setItem(SKEY, JSON.stringify(all.slice(-1000)));
+  syncPush(session);
 }
 function fmt(s){ return `${Math.floor(s/60)}:${String(s%60).padStart(2,"0")}`; }
 let timerRunning = false, pausedAt = null;
@@ -595,7 +613,8 @@ function renderBoards(){
 let showHidden = false;
 function setHidden(id, val){
   const all = loadSessions(); const k = all.findIndex(s => s.id === id);
-  if(k >= 0){ all[k].hidden = val; localStorage.setItem(SKEY, JSON.stringify(all)); }
+  if(k >= 0){ all[k].hidden = val; all[k].up = Date.now();
+    localStorage.setItem(SKEY, JSON.stringify(all)); syncPush(all[k]); }
   renderResults();
 }
 function renderResults(){
@@ -847,6 +866,7 @@ function finish(){
   $("retryMissed").classList.toggle("hidden", state.missed.length === 0);
   session.finished = true; saveSession();
   renderBoards();
+  syncReconcile();   // ensure the final "finished" state reaches the server
 }
 
 // ================= NOUNS QUIZ ENGINE =================
@@ -1010,10 +1030,13 @@ function nGrade(){
     right: gradedList.filter(x => p.results[x.n].correct).length,
     finished: gradedList.length === nList.length, when: p.when,
     sentences: gradedList.map(x => ({ n: x.n, right: !!p.results[x.n].correct })) };
+  entry.up = Date.now();
   const allS = loadSessions();
   const at = allS.findIndex(x => x.id === p.sid);
-  at >= 0 ? allS[at] = { ...allS[at], ...entry } : allS.push(entry);
+  const merged = at >= 0 ? { ...allS[at], ...entry } : entry;
+  at >= 0 ? allS[at] = merged : allS.push(merged);
   localStorage.setItem(SKEY, JSON.stringify(allS.slice(-1000)));
+  syncPush(merged);
   nGraded = true;
   nApplyGrade(result);
   $("nCheckBtn").classList.add("hidden");
@@ -1056,6 +1079,7 @@ function nShowFinal(){
   const pct = Math.round(s.correct / nList.length * 100);
   $("nFinalNote").textContent = pct === 100 ? "Perfect score. Incredible."
     : `That's ${pct}%. Sentences you got wrong showed the answers as you went.`;
+  syncReconcile();   // ensure the final set state reaches the server
 }
 function nExit(){
   $("nquiz").classList.add("hidden"); $("nplay").classList.remove("hidden");
@@ -1263,6 +1287,37 @@ $("resultsList").addEventListener("touchend", e => {
   }
   swEl = null;
 }, {passive:true});
+// two-way reconcile: pull remote, keep newer by "up" stamp, push back
+// anything the server lacks or has stale. Offline -> silently does nothing.
+// Runs on load AND after finishing/stopping (self-heals any dropped POST
+// without needing a reload).
+async function syncReconcile(){
+  try {
+    const r = await fetch(SYNC_URL, { headers: { "x-tok": SYNC_TOK } });
+    if(!r.ok) return;
+    const remote = await r.json();
+    const local = loadSessions();
+    local.forEach(s => { if(s.up === undefined) s.up = s.when || 0; });
+    const byId = new Map(local.map(s => [s.id, s]));
+    let changed = false;
+    remote.forEach(rr => {
+      const l = byId.get(rr.id);
+      if(!l){ local.push(rr); changed = true; }
+      else if((rr.up || 0) > (l.up || 0)){ Object.assign(l, rr); changed = true; }
+    });
+    if(changed){
+      localStorage.setItem(SKEY, JSON.stringify(
+        local.sort((a, b) => (a.when || 0) - (b.when || 0)).slice(-1000)));
+      buildQuick();   // refresh nouns badges with merged data
+    }
+    const remoteUp = new Map(remote.map(x => [x.id, x.up || 0]));
+    local.forEach(s => {
+      if(!remoteUp.has(s.id) || (s.up || 0) > remoteUp.get(s.id)) syncPush(s);
+    });
+  } catch(e){}
+}
+syncReconcile();
+
 // Tapping/clicking anywhere else closes a revealed button.
 ["touchstart","mousedown"].forEach(ev => document.addEventListener(ev, e => {
   document.querySelectorAll(".reswrap.open").forEach(w => {

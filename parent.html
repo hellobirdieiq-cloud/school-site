@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>⛵</text></svg>">
+<meta name="color-scheme" content="dark">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Parent view — School</title>
+<style>
+  :root{
+    --ink:#eef1f8; --paper:#0f1626; --line:#2c3852; --soft:#1a2338;
+    --go:#4fd68a; --no:#ff7b72; --mark:#ffd23f;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;background:var(--paper);color:var(--ink);
+    font-family:ui-rounded,"SF Pro Rounded","Nunito","Segoe UI",system-ui,sans-serif;
+    font-size:17px;line-height:1.45}
+  main{max-width:760px;margin:0 auto;padding:24px 16px 60px}
+  h1{font-size:26px;margin:0 0 2px}
+  .small{font-size:14px;color:#9aa6c2}
+  select{font:inherit;color:var(--ink);background:var(--soft);border:2px solid var(--line);
+    border-radius:10px;padding:8px 12px;margin:12px 0}
+  .run{border:2px solid var(--line);border-radius:12px;padding:10px 14px;margin-bottom:10px;
+    display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap}
+  .run .sc{font-weight:800;font-size:19px;min-width:70px}
+  .run .who{font-weight:700}
+  .run .meta{color:#9aa6c2;font-size:14px}
+  .live{color:var(--mark);font-weight:700;font-size:14px}
+  .ok{color:var(--go)} .bad{color:var(--no)}
+  .err{color:var(--no);font-weight:700}
+</style>
+</head>
+<body>
+<main>
+  <h1>Parent view</h1>
+  <p class="small">Every run from every device, newest first. Read-only.
+    Refreshes every 15 seconds — <span id="stamp"></span></p>
+  <select id="who"><option value="">Everyone</option></select>
+  <div id="list">Loading…</div>
+</main>
+<script>
+const SYNC_URL = "https://school-sync.school-sync.workers.dev/r";
+const SYNC_TOK = "2cBf3scAPtUbxtssRBXcPYHuB8C_xxU6";
+const $ = id => document.getElementById(id);
+let rows = [];
+
+function pctClass(p){ return p >= 90 ? "ok" : p >= 70 ? "" : "bad"; }
+function render(){
+  const who = $("who").value;
+  const names = [...new Set(rows.map(r => r.name))].sort();
+  const cur = $("who").value;
+  $("who").innerHTML = '<option value="">Everyone</option>' +
+    names.map(n => `<option value="${n}">${n}</option>`).join("");
+  $("who").value = cur;
+  const shown = rows.filter(r => !who || r.name === who);
+  if(!shown.length){ $("list").innerHTML = '<p class="small">No runs yet.</p>'; return; }
+  $("list").innerHTML = shown.map(r => {
+    const isNouns = r.kind === "nouns";
+    const done = isNouns ? (r.answered ?? r.total) : (r.answers ? r.answers.length : 0);
+    const label = isNouns ? r.deck
+      : `${r.deck} · ${r.n} choices`;
+    const pct = done ? Math.round(r.right / done * 100) : 0;
+    const status = r.finished
+      ? `finished · <span class="${pctClass(pct)}">${pct}%</span>`
+      : `<span class="live">in progress — on question ${Math.min(done + 1, r.total)} of ${r.total}</span>`;
+    return `<div class="run">
+      <span><span class="sc">${r.right}/${done}</span></span>
+      <span style="flex:1;min-width:200px"><span class="who">${r.name}</span>
+        <span class="meta">· ${label}</span><br><span class="meta">${status}</span></span>
+      <span class="meta" style="text-align:right">${new Date(r.when).toLocaleString([], {dateStyle:"short", timeStyle:"short"})}</span>
+    </div>`;
+  }).join("");
+}
+async function pull(){
+  try {
+    const r = await fetch(SYNC_URL, { headers: { "x-tok": SYNC_TOK } });
+    if(!r.ok) throw new Error(r.status);
+    rows = await r.json();
+    rows.sort((a, b) => (b.when || 0) - (a.when || 0));
+    $("stamp").textContent = "updated " + new Date().toLocaleTimeString();
+    render();
+  } catch(e){
+    $("stamp").innerHTML = '<span class="err">can\'t reach sync server</span>';
+  }
+}
+$("who").onchange = render;
+pull();
+setInterval(pull, 15000);
+</script>
+</body>
+</html>
