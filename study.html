@@ -130,6 +130,9 @@
   .praychoices button.wrong{background:var(--no-bg);border-color:var(--no)}
   .praytitle{font-size:26px;font-weight:800;margin:2px 0 6px}
   .praylevel{font-size:14px;color:#9aa6c2;text-transform:uppercase;letter-spacing:.06em;margin:0 0 6px}
+  .flipcard{background:var(--soft);border-radius:14px;padding:8px 18px;margin:0 0 14px}
+  .flipline{font-size:23px;line-height:1.9;padding:8px 0;border-bottom:1px solid var(--line)}
+  .flipline:last-child{border-bottom:none}
 </style>
 </head>
 <body>
@@ -263,6 +266,15 @@
   <div id="prayBody"></div>
   <p class="gradenote" id="prayNote"></p>
   <p class="row" id="prayBtns"></p>
+</section>
+
+<section id="flip" class="hidden">
+  <div class="row" style="align-items:flex-start;gap:10px">
+    <button class="spk" id="flipSpeak" title="Read it aloud" aria-label="Read it aloud">🔊</button>
+    <div class="praytitle" id="flipTitle" style="flex:1"></div>
+  </div>
+  <div id="flipBody"></div>
+  <p class="row" id="flipBtns"></p>
 </section>
 
 <section id="quiz" class="hidden">
@@ -499,6 +511,20 @@ const PRAYERS = [
   ]},
 ];
 // ---------- END PRAYERS ----------
+
+// ---------- FLIP CARDS (say it, then flip — no grading/results/sync) ----------
+const FLIPCARDS = [
+  { section:"Science", title:"Attitudes of a Scientist — Silly Sentence", lines:[
+    "Crazy — Curiosity",
+    "Hippos — Honesty",
+    "Chomp — Creativity",
+    "On — Open Mindedness",
+    "Sour — Skepticism",
+    "Green — Good Ethics",
+    "Apples — Awareness of Bias"
+  ]}
+];
+// ---------- END FLIP CARDS ----------
 
 
 const $ = id => document.getElementById(id);
@@ -752,6 +778,7 @@ function buildQuick(){
     const grid = classSection(box, cls);
     decks.forEach(name => grid.appendChild(makeDeckBtn(name)));
     if(cls === "Religion") PRAYERS.forEach(p => grid.appendChild(makePrayerBtn(p)));
+    FLIPCARDS.filter(f => f.section === cls).forEach(f => grid.appendChild(makeFlipBtn(f)));
   });
   syncQuickSaved();
 }
@@ -1731,6 +1758,53 @@ $("praySpeak").onclick = () => {
   speak($("praySpeak").dataset.say || "", $("praySpeak"));
 };
 // ================= end prayers engine =================
+
+// ================= flip cards (generic, data-driven) =================
+let FC = null;   // active flip card
+function makeFlipBtn(def){
+  const b = document.createElement("button");
+  tagClass(b, def.section);
+  b.dataset.flip = def.title;
+  b.innerHTML = `${def.title}<small>say it, then flip</small>`;
+  b.onclick = () => startFlipCard(def);
+  return b;
+}
+function flipShow(){
+  $("setup").classList.add("hidden"); $("flip").classList.remove("hidden");
+  window.scrollTo(0, 0);
+}
+function flipExit(){
+  ttsStop();
+  $("flip").classList.add("hidden"); $("setup").classList.remove("hidden");
+  FC = null; buildQuick(); markQuickSelection();
+}
+function startFlipCard(def){ FC = def; flipShow(); flipTitleView(); }
+function flipTitleView(){
+  $("flipTitle").textContent = FC.title;
+  $("flipSpeak").dataset.say = FC.title;   // speaker reads the title
+  $("flipBody").innerHTML = "";
+  $("flipBtns").innerHTML = "";
+  const reveal = document.createElement("button"); reveal.className = "primary"; reveal.textContent = "Reveal";
+  reveal.onclick = flipReveal;
+  $("flipBtns").append(reveal);
+}
+function flipReveal(){
+  $("flipSpeak").dataset.say = FC.lines.join(". ");   // speaker reads all lines in order
+  const box = $("flipBody"); box.innerHTML = "";
+  const card = document.createElement("div"); card.className = "flipcard";
+  FC.lines.forEach(line => {
+    const row = document.createElement("div"); row.className = "flipline"; row.textContent = line;
+    card.appendChild(row);
+  });
+  box.appendChild(card);
+  $("flipBtns").innerHTML = "";
+  const hide = document.createElement("button"); hide.className = "primary"; hide.textContent = "Hide";
+  const exit = document.createElement("button"); exit.textContent = "Exit";
+  hide.onclick = flipTitleView; exit.onclick = flipExit;
+  $("flipBtns").append(hide, exit);
+}
+$("flipSpeak").onclick = () => speak($("flipSpeak").dataset.say || "", $("flipSpeak"));
+// ================= end flip cards =================
 
 // wire up
 const NAME_PILLS = ["Luca", "The Mule", "Anon"];
