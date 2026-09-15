@@ -119,7 +119,8 @@
   <h2>Nickname</h2>
   <div class="row seg" id="namePick" style="margin-bottom:10px">
     <button data-v="Luca">Luca</button>
-    <button data-v="the Mule">the Mule</button>
+    <button data-v="The Mule">The Mule</button>
+    <button data-v="Anon">Anon</button>
   </div>
   <input type="text" id="nameInput" placeholder="Or type another name" maxlength="20" autocomplete="off">
 
@@ -1113,10 +1114,25 @@ function nStartOver(btn){
 $("nRestartBtn").onclick = () => nStartOver($("nRestartBtn"));
 
 // wire up
-const NAME_PILLS = ["Luca", "the Mule"];
+const NAME_PILLS = ["Luca", "The Mule", "Anon"];
 function syncNamePick(){
   [...$("namePick").children].forEach(b =>
     b.setAttribute("aria-pressed", b.dataset.v === state.name.trim()));
+}
+// one-time rename: "the Mule" -> "The Mule" (keep all existing progress)
+if(localStorage.getItem("flashcardName") === "the Mule")
+  localStorage.setItem("flashcardName", "The Mule");
+{
+  const mSess = loadSessions(); let mChg = false;
+  mSess.forEach(s => { if(s.name === "the Mule"){ s.name = "The Mule"; mChg = true; } });
+  if(mChg) localStorage.setItem(SKEY, JSON.stringify(mSess));
+  for(let k = 1; k <= 5; k++){
+    const o = localStorage.getItem(`nounsApp_the Mule_${k}`);
+    if(o && !localStorage.getItem(`nounsApp_The Mule_${k}`)){
+      localStorage.setItem(`nounsApp_The Mule_${k}`, o);
+      localStorage.removeItem(`nounsApp_the Mule_${k}`);
+    }
+  }
 }
 state.name = localStorage.getItem("flashcardName") || "Luca";   // default: Luca
 localStorage.setItem("flashcardName", state.name);
