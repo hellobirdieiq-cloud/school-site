@@ -920,45 +920,59 @@ function nGrade(){
   const runs = nUserRuns();
   const keyLeft = s.nouns.map(nn => ({ t: nn.t, w: nn.w, matched: false }));
   const claimed = new Set();
-  function segment(words, at, want, used){
-    if(at === words.length) return [];
-    for(let ki = 0; ki < keyLeft.length; ki++){
-      const kn = keyLeft[ki];
-      if(kn.matched || used.has(ki) || kn.t !== want) continue;
-      if(at + kn.w.length > words.length) continue;
-      if(!kn.w.every((w, j) => w === words[at + j])) continue;
-      used.add(ki);
-      const rest = segment(words, at + kn.w.length, want, used);
-      if(rest) return [ki, ...rest];
-      used.delete(ki);
-    }
-    return null;
+  function tryMatchAt(words, pos, type){
+    // longest still-unmatched keyed noun of `type` starting at words[pos]
+    let best = -1, bestLen = 0;
+    keyLeft.forEach((kn, ki) => {
+      if(kn.matched || kn.t !== type || kn.w.length <= bestLen) return;
+      if(pos + kn.w.length > words.length) return;
+      if(kn.w.every((w, j) => w === words[pos + j])){ best = ki; bestLen = kn.w.length; }
+    });
+    return best;
   }
-  const leftover = [];
+  // Partial matching inside each run: every keyed noun found is credited;
+  // extra words don't void the rest ("eight nights" underlined together ->
+  // "eight" is struck as not-a-noun, "nights" still counts).
+  const wrongType = [], notNoun = [];
   runs.forEach(r => {
     const want = r.s === 1 ? "C" : "P";
-    const seg = segment(r.words, 0, want, new Set());
-    if(seg){ seg.forEach(ki => keyLeft[ki].matched = true);
-             for(let k = r.start; k <= r.end; k++) claimed.add(k); }
-    else leftover.push(r);
-  });
-  const wrongType = [], notNoun = [];
-  leftover.forEach(r => {
-    const other = r.s === 1 ? "P" : "C";
-    const seg = segment(r.words, 0, other, new Set());
-    if(seg){
-      let pos = r.start;
-      seg.forEach(ki => {
-        const kn = keyLeft[ki]; kn.matched = true;
-        const idxs = [];
-        for(let j = 0; j < kn.w.length; j++){ idxs.push(pos + j); claimed.add(pos + j); }
-        pos += kn.w.length;
-        wrongType.push({ i: idxs, t: kn.t });
-      });
-    } else {
-      const idxs = []; for(let k = r.start; k <= r.end; k++) idxs.push(k);
-      notNoun.push(idxs);
+    const other = want === "C" ? "P" : "C";
+    const left = [];
+    let pos = 0;
+    while(pos < r.words.length){
+      const ki = tryMatchAt(r.words, pos, want);
+      if(ki >= 0){
+        keyLeft[ki].matched = true;
+        for(let j = 0; j < keyLeft[ki].w.length; j++) claimed.add(r.start + pos + j);
+        pos += keyLeft[ki].w.length;
+      } else { left.push(pos); pos++; }
     }
+    // wrong-type matches must fit inside consecutive leftover words
+    const still = [];
+    for(let li = 0; li < left.length; ){
+      const p0 = left[li];
+      const ki = tryMatchAt(r.words, p0, other);
+      let fits = ki >= 0;
+      if(fits){
+        for(let j = 0; j < keyLeft[ki].w.length; j++)
+          if(left[li + j] !== p0 + j){ fits = false; break; }
+      }
+      if(fits){
+        const len = keyLeft[ki].w.length;
+        keyLeft[ki].matched = true;
+        const idxs = [];
+        for(let j = 0; j < len; j++){ idxs.push(r.start + p0 + j); claimed.add(r.start + p0 + j); }
+        wrongType.push({ i: idxs, t: keyLeft[ki].t });
+        li += len;
+      } else { still.push(p0); li++; }
+    }
+    // remaining words: not a noun, grouped contiguously
+    let chunk = null;
+    still.forEach(p1 => {
+      const g = r.start + p1;
+      if(chunk && chunk[chunk.length - 1] === g - 1) chunk.push(g);
+      else { chunk = [g]; notNoun.push(chunk); }
+    });
   });
   const missed = [];
   keyLeft.filter(kn => !kn.matched).forEach(kn => {
