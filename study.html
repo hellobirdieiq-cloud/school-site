@@ -1131,21 +1131,25 @@ function startNounSet(set){
   const go = () => {
     nSet = set;
     nStore = `nounsApp_${state.name.trim()}_${set.k}`;
-    const p = nLoadP();
-    // fresh run (no saved progress / after Start over): shuffle the set's
-    // sentence order once and save it; resume always uses the saved order
-    if(!Array.isArray(p.order) || p.order.length !== (set.to - set.from + 1)){
-      p.order = shuffle(nAll.sentences
-        .filter(x => x.n >= set.from && x.n <= set.to).map(x => x.n));
+    const N = set.to - set.from + 1;
+    let p = nLoadP();
+    const usableOrder = Array.isArray(p.order) && p.order.length === N;
+    const complete = Object.keys(p.results || {}).length >= N;
+    // Tapping a set's card: resume a partly-done run, but a FINISHED run (or
+    // no/invalid saved order) starts a brand-new quiz with a fresh shuffle.
+    if(!usableOrder || complete){
+      p = { states: {}, results: {},
+        order: shuffle(nAll.sentences.filter(x => x.n >= set.from && x.n <= set.to).map(x => x.n)) };
       nSaveP(p);
     }
     const byN = new Map(nAll.sentences.map(x => [x.n, x]));
     nList = p.order.map(n => byN.get(n));
     nCur = nList.findIndex(x => !p.results[x.n]);
+    if(nCur === -1) nCur = 0;               // safety; fresh runs start at 0
     $("setup").classList.add("hidden");
     $("nquiz").classList.remove("hidden");
-    if(nCur === -1){ nCur = nList.length - 1; nRender(); nShowFinal(); }
-    else { $("nplay").classList.remove("hidden"); $("nFinal").classList.add("hidden"); nRender(); }
+    $("nplay").classList.remove("hidden"); $("nFinal").classList.add("hidden");
+    nRender();
     window.scrollTo(0, 0);
   };
   if(nAll) go();
