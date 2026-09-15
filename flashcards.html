@@ -199,8 +199,7 @@
     <p class="row">
       <button class="primary" id="nCheckBtn">Check</button>
       <button class="hidden" id="nNextBtn">Next sentence</button>
-      <button id="nBackBtn">Back to English</button>
-      <button id="nMidRestartBtn">Start over</button>
+      <button id="nBackBtn">Back</button>
     </p>
   </div>
   <div id="nFinal" class="hidden">
@@ -1055,7 +1054,6 @@ $("nBackBtn").onclick = () => { nResetRestartBtns(); nExit(); };
 $("nFinalBack").onclick = () => { nResetRestartBtns(); nExit(); };
 function nResetRestartBtns(){
   $("nRestartBtn").textContent = "Start over";
-  $("nMidRestartBtn").textContent = "Start over";
 }
 function nStartOver(btn){
   if(btn.textContent !== "Really start over?"){ btn.textContent = "Really start over?"; return; }
@@ -1064,7 +1062,6 @@ function nStartOver(btn){
   startNounSet(nSet);                       // fresh shuffle, sentence 1, 0/0
 }
 $("nRestartBtn").onclick = () => nStartOver($("nRestartBtn"));
-$("nMidRestartBtn").onclick = () => nStartOver($("nMidRestartBtn"));
 
 // wire up
 const NAME_PILLS = ["Luca", "the Mule"];
