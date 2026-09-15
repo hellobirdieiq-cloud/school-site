@@ -262,13 +262,12 @@
   <p id="scoreNote"></p>
   <div id="missedList"></div>
   <h2>Scoreboard</h2>
-  <p class="small">Best score for each person on this deck and test type. Saved on this device.</p>
+  <p class="small">Best score for each person on this deck and test type.</p>
   <table id="board"></table>
   <p class="row" style="margin-top:20px">
-    <button class="primary" id="retryMissed">Retry the ones I missed</button>
-    <button id="againBtn">Same test again</button>
-    <button id="doneResultsBtn">Results</button>
-    <button id="setupBtn">Back to setup</button>
+    <button class="primary" id="retryMissed">Retry missed questions</button>
+    <button id="againBtn">Restart test</button>
+    <button id="homeBtn">Home</button>
   </p>
 </section>
 
@@ -982,7 +981,11 @@ function finish(){
     const div = document.createElement("div"); div.className = "missed";
     div.innerHTML = `<b>${w}</b>${fmtDef(d)}`; box.appendChild(div);
   });
-  $("retryMissed").classList.toggle("hidden", state.missed.length === 0);
+  // Retry shows only when something was missed; it's the yellow (primary)
+  // button. With nothing missed, hide it and make Home yellow instead.
+  const hasMissed = state.missed.length > 0;
+  $("retryMissed").classList.toggle("hidden", !hasMissed);
+  $("homeBtn").classList.toggle("primary", !hasMissed);
   session.finished = true; saveSession();
   renderBoards();
   syncReconcile();   // ensure the final "finished" state reaches the server
@@ -1381,7 +1384,7 @@ $("startBtn").onclick = () => startTest(state.selected);
 $("nextBtn").onclick = () => { state.i++; state.i < state.queue.length ? showQuestion() : finish(); };
 $("retryMissed").onclick = () => startTest(new Set(state.missed));
 $("againBtn").onclick = () => startTest(state.selected);
-$("setupBtn").onclick = () => { $("done").classList.add("hidden"); $("setup").classList.remove("hidden"); };
+$("homeBtn").onclick = () => { ttsStop(); $("done").classList.add("hidden"); $("setup").classList.remove("hidden"); };
 $("pauseBtn").onclick = pauseTest;
 $("resumeBtn").onclick = resumeTest;
 $("stopBtn").onclick = () => {
@@ -1389,7 +1392,6 @@ $("stopBtn").onclick = () => {
   $("quiz").classList.add("hidden"); $("setup").classList.remove("hidden");
 };
 $("resultsBtn").onclick = () => showResults("setup");
-$("doneResultsBtn").onclick = () => showResults("done");
 $("resultsName").onchange = renderResults;
 $("resultsBack").onclick = () => { $("results").classList.add("hidden"); $($("results").dataset.from).classList.remove("hidden"); };
 $("toggleHidden").onclick = () => { showHidden = !showHidden; renderResults(); };
