@@ -342,7 +342,8 @@ const DECKS = {
     ["Evangelization","What is spreading the Gospels or sharing the Good News of Jesus called?"],
     ["The Divine Office","What is the prayer of the Church that uses readings from Scripture and is also called the Liturgy of the Hours?"],
     ["God","Who should people pray to?"],
-    ["To help us focus our minds and hearts on God","Why do we fold our hands when we pray?"]
+    ["To help us focus our minds and hearts on God","Why do we fold our hands when we pray?"],
+    ["The Lord’s Prayer","Which prayer did Jesus teach us to pray while he was on the side of a mountain?"]
   ]
 };
 // Class groupings for the start screen. Decks not listed here fall under
@@ -784,7 +785,14 @@ function showQuestion(){
   }
 
   const nChoices = Math.min(state.n, deck.length);
-  const others = shuffle(deck.map((_,i)=>i).filter(i=>i!==idx)).slice(0, nChoices-1);
+  // Never offer a distractor whose visible choice text equals the correct
+  // answer's (case-insensitive, trimmed) — avoids two identical buttons when
+  // two cards share an answer (e.g. both "The Lord's Prayer").
+  const choiceText = j => askDef ? deck[j][0] : deck[j][1];
+  const same = s => s.trim().toLowerCase();
+  const correctText = same(choiceText(idx));
+  const others = shuffle(deck.map((_,i)=>i)
+    .filter(i => i !== idx && same(choiceText(i)) !== correctText)).slice(0, nChoices-1);
   const options = shuffle([idx, ...others]);
   const box = $("choices"); box.innerHTML = "";
   options.forEach(i => {
