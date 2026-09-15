@@ -200,6 +200,7 @@
       <button class="primary" id="nCheckBtn">Check</button>
       <button class="hidden" id="nNextBtn">Next sentence</button>
       <button id="nBackBtn">Back to English</button>
+      <button id="nMidRestartBtn">Start over</button>
     </p>
   </div>
   <div id="nFinal" class="hidden">
@@ -863,6 +864,7 @@ function nRender(){
   });
   $("nVerdict").textContent = ""; $("nVerdict").className = "verdict";
   $("nGradeNote").innerHTML = "";
+  nResetRestartBtns();
   $("nCheckBtn").classList.toggle("hidden", nGraded);
   $("nNextBtn").classList.toggle("hidden", !nGraded);
   $("nNextBtn").textContent = nCur + 1 < nList.length ? "Next sentence" : "See my score";
@@ -1016,8 +1018,16 @@ function startNounSet(set){
   const go = () => {
     nSet = set;
     nStore = `nounsApp_${state.name.trim()}_${set.k}`;
-    nList = nAll.sentences.filter(x => x.n >= set.from && x.n <= set.to);
     const p = nLoadP();
+    // fresh run (no saved progress / after Start over): shuffle the set's
+    // sentence order once and save it; resume always uses the saved order
+    if(!Array.isArray(p.order) || p.order.length !== (set.to - set.from + 1)){
+      p.order = shuffle(nAll.sentences
+        .filter(x => x.n >= set.from && x.n <= set.to).map(x => x.n));
+      nSaveP(p);
+    }
+    const byN = new Map(nAll.sentences.map(x => [x.n, x]));
+    nList = p.order.map(n => byN.get(n));
     nCur = nList.findIndex(x => !p.results[x.n]);
     $("setup").classList.add("hidden");
     $("nquiz").classList.remove("hidden");
@@ -1041,16 +1051,20 @@ $("nNextBtn").onclick = () => {
   if(nCur + 1 < nList.length){ nCur++; nRender(); window.scrollTo(0, 0); }
   else nShowFinal();
 };
-$("nBackBtn").onclick = nExit;
-$("nFinalBack").onclick = nExit;
-$("nRestartBtn").onclick = () => {
-  const b = $("nRestartBtn");
-  if(b.textContent !== "Really start over?"){ b.textContent = "Really start over?"; return; }
-  localStorage.removeItem(nStore);
-  b.textContent = "Start over";
-  $("nFinal").classList.add("hidden"); $("nplay").classList.remove("hidden");
-  nCur = 0; nRender();
-};
+$("nBackBtn").onclick = () => { nResetRestartBtns(); nExit(); };
+$("nFinalBack").onclick = () => { nResetRestartBtns(); nExit(); };
+function nResetRestartBtns(){
+  $("nRestartBtn").textContent = "Start over";
+  $("nMidRestartBtn").textContent = "Start over";
+}
+function nStartOver(btn){
+  if(btn.textContent !== "Really start over?"){ btn.textContent = "Really start over?"; return; }
+  localStorage.removeItem(nStore);          // this nickname's progress only
+  nResetRestartBtns();
+  startNounSet(nSet);                       // fresh shuffle, sentence 1, 0/0
+}
+$("nRestartBtn").onclick = () => nStartOver($("nRestartBtn"));
+$("nMidRestartBtn").onclick = () => nStartOver($("nMidRestartBtn"));
 
 // wire up
 const NAME_PILLS = ["Luca", "the Mule"];
