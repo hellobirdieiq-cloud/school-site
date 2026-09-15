@@ -593,6 +593,12 @@ function renderResults(){
     ? `<p class="small">All ${nHidden} tests are hidden — tap “Show hidden”.</p>`
     : '<p class="small">No tests yet.</p>'; return; }
   $("resultsList").innerHTML = all.map(s => {
+    if(s.kind === "nouns"){
+      const act = s.hidden ? "Unhide" : "Hide";
+      const items = (s.sentences || []).map(x =>
+        `<li class="${x.right?'ok':'bad'}"><span class="mk">${x.right?'✓':'✗'}</span><span>Sentence ${x.n}</span></li>`).join("");
+      return `<div class="reswrap${s.hidden ? ' dim' : ''}" data-id="${s.id}"><button class="swipeact" type="button">${act}</button><details class="res"><summary><span><span class="sc">${s.right}/${s.total}</span> <span class="meta">${s.total - s.right} wrong</span><br><span class="meta">${s.name} · ${s.deck} · underline the nouns · finished</span></span><span class="meta" style="text-align:right">${new Date(s.when).toLocaleString([], {dateStyle:"short", timeStyle:"short"})}</span><button class="hidebtn" type="button">${act}</button></summary><ul>${items}</ul></details></div>`;
+    }
     const answered = s.answers.length, wrong = answered - s.right;
     const status = s.finished ? "finished" : `stopped after ${answered} of ${s.total}`;
     const secs = answered ? Math.round(s.answers.reduce((a,x)=>a+x.secs,0)/answered*10)/10 : 0;
@@ -825,10 +831,11 @@ function finish(){
 // tap-cycle, run/segmentation grader, red feedback and summary, adapted to
 // run one 20-sentence set at a time with its own storage key.)
 let nAll = null, nSet = null, nList = [], nCur = 0, nTokens = [], nGraded = false;
+let nStore = "";   // per-nickname progress key, fixed when a set starts
 const nNorm = w => w.toLowerCase().replace(/^[^a-z0-9]+|[^a-z0-9]+$/g, "");
-function nLoadP(){ try { return JSON.parse(localStorage.getItem(nSet.store)) || {states:{}, results:{}}; }
+function nLoadP(){ try { return JSON.parse(localStorage.getItem(nStore)) || {states:{}, results:{}}; }
                    catch(e){ return {states:{}, results:{}}; } }
-function nSaveP(p){ localStorage.setItem(nSet.store, JSON.stringify(p)); }
+function nSaveP(p){ localStorage.setItem(nStore, JSON.stringify(p)); }
 function nScoreNow(){
   const rs = Object.values(nLoadP().results);
   return { attempted: rs.length, correct: rs.filter(r => r.correct).length };
@@ -842,7 +849,7 @@ function nRender(){
   const s = nList[nCur];
   const p = nLoadP();
   nGraded = !!p.results[s.n];
-  $("nProgressText").textContent = `${nSet.label} — Sentence ${s.n} of ${nSet.to}`;
+  $("nProgressText").textContent = `${nSet.label} — Sentence ${nCur + 1} of ${nList.length}`;
   const saved = p.states[s.n] || [];
   const box = $("nSentence"); box.innerHTML = "";
   nTokens = [];
@@ -946,6 +953,17 @@ function nGrade(){
   p.states[s.n] = nTokens.map(sp => +sp.dataset.s);
   p.results[s.n] = result;
   nSaveP(p);
+  // set completed (all 20 graded): record it where the Results tab looks
+  if(Object.keys(p.results).length === nList.length){
+    const all = loadSessions();
+    all.push({ id: `nouns-${nSet.k}-${Date.now()}`, kind: "nouns",
+      name: state.name.trim(), deck: nSet.label,
+      total: nList.length,
+      right: nList.filter(x => p.results[x.n] && p.results[x.n].correct).length,
+      finished: true, when: Date.now(),
+      sentences: nList.map(x => ({ n: x.n, right: !!(p.results[x.n] && p.results[x.n].correct) })) });
+    localStorage.setItem(SKEY, JSON.stringify(all.slice(-1000)));
+  }
   nGraded = true;
   nApplyGrade(result);
   $("nCheckBtn").classList.add("hidden");
@@ -994,8 +1012,10 @@ function nExit(){
   $("nFinal").classList.add("hidden"); $("setup").classList.remove("hidden");
 }
 function startNounSet(set){
+  if(!needName()) return;                 // same nickname flow as flashcards
   const go = () => {
     nSet = set;
+    nStore = `nounsApp_${state.name.trim()}_${set.k}`;
     nList = nAll.sentences.filter(x => x.n >= set.from && x.n <= set.to);
     const p = nLoadP();
     nCur = nList.findIndex(x => !p.results[x.n]);
@@ -1026,7 +1046,7 @@ $("nFinalBack").onclick = nExit;
 $("nRestartBtn").onclick = () => {
   const b = $("nRestartBtn");
   if(b.textContent !== "Really start over?"){ b.textContent = "Really start over?"; return; }
-  localStorage.removeItem(nSet.store);
+  localStorage.removeItem(nStore);
   b.textContent = "Start over";
   $("nFinal").classList.add("hidden"); $("nplay").classList.remove("hidden");
   nCur = 0; nRender();
@@ -1040,6 +1060,15 @@ function syncNamePick(){
 }
 state.name = localStorage.getItem("flashcardName") || "Luca";   // default: Luca
 localStorage.setItem("flashcardName", state.name);
+// migrate pre-nickname nouns progress (nounsApp_N) to the current nickname
+for(let k = 1; k <= 5; k++){
+  const legacy = localStorage.getItem(`nounsApp_${k}`);
+  const dest = `nounsApp_${state.name.trim()}_${k}`;
+  if(legacy && !localStorage.getItem(dest)){
+    localStorage.setItem(dest, legacy);
+    localStorage.removeItem(`nounsApp_${k}`);
+  }
+}
 $("nameInput").value = NAME_PILLS.includes(state.name) ? "" : state.name;
 syncNamePick();
 $("namePick").addEventListener("click", e => {
