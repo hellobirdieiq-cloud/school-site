@@ -10,6 +10,7 @@
     --ink:#eef1f8; --paper:#0f1626; --line:#2c3852; --soft:#1a2338;
     --go:#4fd68a; --go-bg:#153826; --no:#ff7b72; --no-bg:#3a1c1c; --mark:#ffd23f;
     --c-geo:#5aa9ff; --c-sci:#4fd68a; --c-rel:#c78bff; --c-other:#9aa6c2;
+    --c-eng:#ffb86b;
   }
   *{box-sizing:border-box}
   html,body{margin:0;background:var(--paper);color:var(--ink);
@@ -87,6 +88,24 @@
   th,td{text-align:left;padding:8px 6px;border-bottom:1px solid var(--line);font-size:16px}
   th{color:#9aa6c2;font-weight:600}
   .you td{background:var(--soft)}
+  /* nouns-quiz styles (mirrors nouns.html) */
+  .nsentence{background:var(--soft);border-radius:14px;padding:18px 16px;
+    font-size:22px;line-height:2.2;margin:0 0 14px;user-select:none;
+    -webkit-user-select:none;-webkit-tap-highlight-color:transparent}
+  .w{padding:12px 1px;text-decoration-thickness:2px;text-underline-offset:5px}
+  .w[data-s="1"]{text-decoration:underline}
+  .w[data-s="2"]{text-decoration:underline;text-decoration-style:double}
+  .w.missed1{text-decoration:underline dotted var(--no)}
+  .w.missed2{text-decoration:underline dotted var(--no);
+    border-bottom:2px dotted var(--no);padding-bottom:8px}
+  .w.struckw{text-decoration:line-through solid var(--no)}
+  .gradenote{font-size:16px;color:#9aa6c2;margin:0 0 10px;min-height:1em}
+  .gradenote b{color:var(--no);font-weight:700}
+  .u1{text-decoration:underline;text-underline-offset:3px}
+  .u2{text-decoration:underline;text-decoration-style:double;text-underline-offset:3px}
+  .nscore{font-weight:800;font-size:20px;background:var(--soft);padding:4px 14px;
+    border-radius:999px;white-space:nowrap}
+  .finalscore{font-size:56px;font-weight:800;margin:12px 0}
 </style>
 </head>
 <body>
@@ -161,6 +180,36 @@
   <div class="cards" id="cardList"></div>
 
   <p style="margin-top:24px"><button class="primary" id="startBtn">Start test</button></p>
+  </div>
+</section>
+
+<section id="nquiz" class="hidden">
+  <div id="nplay">
+    <div class="row" style="justify-content:space-between;align-items:baseline">
+      <span class="small" id="nProgressText"></span>
+      <span class="nscore" id="nScore">0 / 0</span>
+    </div>
+    <div class="bar"><div id="nProgressBar"></div></div>
+    <p class="small" style="margin:0 0 10px">Tap a word to underline it.
+      <span class="u1">once</span> = common noun ·
+      <span class="u2">twice</span> = proper noun · third tap clears.</p>
+    <p class="nsentence" id="nSentence"></p>
+    <div class="verdict" id="nVerdict"></div>
+    <p class="gradenote" id="nGradeNote"></p>
+    <p class="row">
+      <button class="primary" id="nCheckBtn">Check</button>
+      <button class="hidden" id="nNextBtn">Next sentence</button>
+      <button id="nBackBtn">Back to English</button>
+    </p>
+  </div>
+  <div id="nFinal" class="hidden">
+    <h1>All done!</h1>
+    <div class="finalscore" id="nFinalScore"></div>
+    <p id="nFinalNote"></p>
+    <p class="row">
+      <button class="primary" id="nFinalBack">Back to English</button>
+      <button id="nRestartBtn">Start over</button>
+    </p>
   </div>
 </section>
 
@@ -296,13 +345,19 @@ const DECKS = {
 };
 // Class groupings for the start screen. Decks not listed here fall under
 // "Other" so nothing disappears if a name is mistyped.
-const SUBJECTS = { "Geography": ["Geography 1"],
+const SUBJECTS = { "English": [],
+                   "Geography": ["Geography 1"],
                    "Science": ["Science 1-1","Science 1-2","Science 1-3"],
                    "Religion": ["Religion 1", "Religion Chapter 1 Prayer Quiz"] };
+// English activities: five 20-sentence sets of the nouns quiz (nouns-data.json)
+const NOUN_SETS = [1, 2, 3, 4, 5].map(k =>
+  ({ k, label: `Nouns Quiz ${k}`, from: (k - 1) * 20 + 1, to: k * 20,
+     store: `nounsApp_${k}` }));
 const classOf = deck =>
   Object.keys(SUBJECTS).find(c => SUBJECTS[c].includes(deck)) || "Other";
 const CLASS_COLOR = { "Geography": "--c-geo", "Science": "--c-sci",
-                      "Religion": "--c-rel", "Other": "--c-other" };
+                      "Religion": "--c-rel", "Other": "--c-other",
+                      "English": "--c-eng" };
 function tagClass(el, cls){
   el.dataset.class = cls;
   el.style.setProperty("--cc", `var(${CLASS_COLOR[cls] || "--c-other"})`);
@@ -466,8 +521,18 @@ function makeDeckBtn(name){
   };
   return b;
 }
+function makeNounBtn(set){
+  const b = document.createElement("button");
+  tagClass(b, "English");
+  b.dataset.nounset = set.k;
+  b.innerHTML = `${set.label}<small>sentences ${set.from}–${set.to} · underline the nouns</small>`;
+  b.onclick = () => startNounSet(set);   // always starts, settings open or not
+  return b;
+}
 function buildQuick(){
   const box = $("quickDecks"); box.innerHTML = "";
+  const engGrid = classSection(box, "English");
+  NOUN_SETS.forEach(set => engGrid.appendChild(makeNounBtn(set)));
   classGroups(Object.keys(DECKS), d => d).forEach(([cls, decks]) => {
     const grid = classSection(box, cls);
     decks.forEach(name => grid.appendChild(makeDeckBtn(name)));
@@ -753,6 +818,219 @@ function finish(){
   session.finished = true; saveSession();
   renderBoards();
 }
+
+// ================= NOUNS QUIZ ENGINE =================
+// DUPLICATED from nouns.html — keep in sync.
+// (nouns.html is shared and must not change; this is the same tokenizer,
+// tap-cycle, run/segmentation grader, red feedback and summary, adapted to
+// run one 20-sentence set at a time with its own storage key.)
+let nAll = null, nSet = null, nList = [], nCur = 0, nTokens = [], nGraded = false;
+const nNorm = w => w.toLowerCase().replace(/^[^a-z0-9]+|[^a-z0-9]+$/g, "");
+function nLoadP(){ try { return JSON.parse(localStorage.getItem(nSet.store)) || {states:{}, results:{}}; }
+                   catch(e){ return {states:{}, results:{}}; } }
+function nSaveP(p){ localStorage.setItem(nSet.store, JSON.stringify(p)); }
+function nScoreNow(){
+  const rs = Object.values(nLoadP().results);
+  return { attempted: rs.length, correct: rs.filter(r => r.correct).length };
+}
+function nDrawScore(){
+  const s = nScoreNow();
+  $("nScore").textContent = `${s.correct} / ${s.attempted}`;
+  $("nProgressBar").style.width = `${(s.attempted / nList.length) * 100}%`;
+}
+function nRender(){
+  const s = nList[nCur];
+  const p = nLoadP();
+  nGraded = !!p.results[s.n];
+  $("nProgressText").textContent = `${nSet.label} — Sentence ${s.n} of ${nSet.to}`;
+  const saved = p.states[s.n] || [];
+  const box = $("nSentence"); box.innerHTML = "";
+  nTokens = [];
+  s.text.split(/\s+/).forEach((word, k) => {
+    if(k) box.appendChild(document.createTextNode(" "));
+    const sp = document.createElement("span");
+    sp.className = "w"; sp.textContent = word;
+    sp.dataset.s = saved[k] || 0; sp.dataset.k = k;
+    box.appendChild(sp);
+    nTokens.push(sp);
+  });
+  $("nVerdict").textContent = ""; $("nVerdict").className = "verdict";
+  $("nGradeNote").innerHTML = "";
+  $("nCheckBtn").classList.toggle("hidden", nGraded);
+  $("nNextBtn").classList.toggle("hidden", !nGraded);
+  $("nNextBtn").textContent = nCur + 1 < nList.length ? "Next sentence" : "See my score";
+  if(nGraded) nApplyGrade(p.results[s.n]);
+  nDrawScore();
+}
+function nUserRuns(){
+  const runs = [];
+  let run = null;
+  nTokens.forEach((sp, k) => {
+    const st = +sp.dataset.s;
+    if(st && run && run.s === st && run.end === k - 1){ run.end = k; run.words.push(nNorm(sp.textContent)); }
+    else if(st){ run = { s: st, start: k, end: k, words: [nNorm(sp.textContent)] }; runs.push(run); }
+    else run = null;
+    if(run && /[,;:!?]$/.test(sp.textContent)) run = null;
+  });
+  return runs;
+}
+function nFindSpan(words, claimed){
+  const tw = nTokens.map(sp => nNorm(sp.textContent));
+  for(let i = 0; i + words.length <= tw.length; i++){
+    if(claimed.has(i)) continue;
+    let ok = true;
+    for(let j = 0; j < words.length; j++)
+      if(tw[i+j] !== words[j] || claimed.has(i+j)){ ok = false; break; }
+    if(ok) return i;
+  }
+  return -1;
+}
+function nGrade(){
+  const s = nList[nCur];
+  const runs = nUserRuns();
+  const keyLeft = s.nouns.map(nn => ({ t: nn.t, w: nn.w, matched: false }));
+  const claimed = new Set();
+  function segment(words, at, want, used){
+    if(at === words.length) return [];
+    for(let ki = 0; ki < keyLeft.length; ki++){
+      const kn = keyLeft[ki];
+      if(kn.matched || used.has(ki) || kn.t !== want) continue;
+      if(at + kn.w.length > words.length) continue;
+      if(!kn.w.every((w, j) => w === words[at + j])) continue;
+      used.add(ki);
+      const rest = segment(words, at + kn.w.length, want, used);
+      if(rest) return [ki, ...rest];
+      used.delete(ki);
+    }
+    return null;
+  }
+  const leftover = [];
+  runs.forEach(r => {
+    const want = r.s === 1 ? "C" : "P";
+    const seg = segment(r.words, 0, want, new Set());
+    if(seg){ seg.forEach(ki => keyLeft[ki].matched = true);
+             for(let k = r.start; k <= r.end; k++) claimed.add(k); }
+    else leftover.push(r);
+  });
+  const wrongType = [], notNoun = [];
+  leftover.forEach(r => {
+    const other = r.s === 1 ? "P" : "C";
+    const seg = segment(r.words, 0, other, new Set());
+    if(seg){
+      let pos = r.start;
+      seg.forEach(ki => {
+        const kn = keyLeft[ki]; kn.matched = true;
+        const idxs = [];
+        for(let j = 0; j < kn.w.length; j++){ idxs.push(pos + j); claimed.add(pos + j); }
+        pos += kn.w.length;
+        wrongType.push({ i: idxs, t: kn.t });
+      });
+    } else {
+      const idxs = []; for(let k = r.start; k <= r.end; k++) idxs.push(k);
+      notNoun.push(idxs);
+    }
+  });
+  const missed = [];
+  keyLeft.filter(kn => !kn.matched).forEach(kn => {
+    const at = nFindSpan(kn.w, claimed);
+    if(at >= 0){
+      const idxs = [];
+      for(let j = 0; j < kn.w.length; j++){ idxs.push(at + j); claimed.add(at + j); }
+      missed.push({ i: idxs, t: kn.t });
+    }
+  });
+  const result = { v: 2,
+    correct: notNoun.length === 0 && wrongType.length === 0 && missed.length === 0,
+    missed, wrongType, notNoun };
+  const p = nLoadP();
+  p.states[s.n] = nTokens.map(sp => +sp.dataset.s);
+  p.results[s.n] = result;
+  nSaveP(p);
+  nGraded = true;
+  nApplyGrade(result);
+  $("nCheckBtn").classList.add("hidden");
+  $("nNextBtn").classList.remove("hidden");
+  nDrawScore();
+}
+function nLabelOf(idxs){
+  return idxs.map(k => nTokens[k] ? nTokens[k].textContent.replace(/^\W+|\W+$/g, "") : "")
+             .filter(Boolean).join(" ");
+}
+const N_TYPE_WORD = { C: "common", P: "proper" };
+function nApplyGrade(result){
+  $("nGradeNote").innerHTML = "";
+  result.notNoun.forEach(idxs => idxs.forEach(k => nTokens[k] && nTokens[k].classList.add("struckw")));
+  [...result.missed, ...result.wrongType].forEach(m => m.i.forEach(k => {
+    if(!nTokens[k]) return;
+    nTokens[k].classList.remove("struckw");
+    nTokens[k].dataset.s = 0;
+    nTokens[k].classList.add(m.t === "C" ? "missed1" : "missed2");
+  }));
+  $("nVerdict").textContent = result.correct ? "Correct!" : "Not quite.";
+  $("nVerdict").className = "verdict " + (result.correct ? "ok" : "bad");
+  if(!result.correct){
+    const parts = [];
+    if(result.missed.length)
+      parts.push("<b>Missed:</b> " + result.missed.map(m => `${nLabelOf(m.i)} (${N_TYPE_WORD[m.t]})`).join(", "));
+    if(result.wrongType.length)
+      parts.push("<b>Wrong type:</b> " + result.wrongType.map(m => `${nLabelOf(m.i)} (${N_TYPE_WORD[m.t]})`).join(", "));
+    if(result.notNoun.length)
+      parts.push("<b>Not a noun:</b> " + result.notNoun.map(nLabelOf).join(", "));
+    $("nGradeNote").innerHTML = parts.join(" · ");
+  }
+}
+// ============== end duplicated grader block ==============
+
+function nShowFinal(){
+  const s = nScoreNow();
+  $("nplay").classList.add("hidden"); $("nFinal").classList.remove("hidden");
+  $("nFinalScore").textContent = `${s.correct} / ${nList.length}`;
+  const pct = Math.round(s.correct / nList.length * 100);
+  $("nFinalNote").textContent = pct === 100 ? "Perfect score. Incredible."
+    : `That's ${pct}%. Sentences you got wrong showed the answers as you went.`;
+}
+function nExit(){
+  $("nquiz").classList.add("hidden"); $("nplay").classList.remove("hidden");
+  $("nFinal").classList.add("hidden"); $("setup").classList.remove("hidden");
+}
+function startNounSet(set){
+  const go = () => {
+    nSet = set;
+    nList = nAll.sentences.filter(x => x.n >= set.from && x.n <= set.to);
+    const p = nLoadP();
+    nCur = nList.findIndex(x => !p.results[x.n]);
+    $("setup").classList.add("hidden");
+    $("nquiz").classList.remove("hidden");
+    if(nCur === -1){ nCur = nList.length - 1; nRender(); nShowFinal(); }
+    else { $("nplay").classList.remove("hidden"); $("nFinal").classList.add("hidden"); nRender(); }
+    window.scrollTo(0, 0);
+  };
+  if(nAll) go();
+  else fetch("nouns-data.json").then(r => r.json()).then(d => { nAll = d; go(); });
+}
+$("nSentence").addEventListener("click", e => {
+  if(nGraded) return;
+  const sp = e.target.closest(".w"); if(!sp) return;
+  sp.dataset.s = (+sp.dataset.s + 1) % 3;
+  const p = nLoadP();
+  p.states[nList[nCur].n] = nTokens.map(x => +x.dataset.s);
+  nSaveP(p);
+});
+$("nCheckBtn").onclick = nGrade;
+$("nNextBtn").onclick = () => {
+  if(nCur + 1 < nList.length){ nCur++; nRender(); window.scrollTo(0, 0); }
+  else nShowFinal();
+};
+$("nBackBtn").onclick = nExit;
+$("nFinalBack").onclick = nExit;
+$("nRestartBtn").onclick = () => {
+  const b = $("nRestartBtn");
+  if(b.textContent !== "Really start over?"){ b.textContent = "Really start over?"; return; }
+  localStorage.removeItem(nSet.store);
+  b.textContent = "Start over";
+  $("nFinal").classList.add("hidden"); $("nplay").classList.remove("hidden");
+  nCur = 0; nRender();
+};
 
 // wire up
 const NAME_PILLS = ["Luca", "the Mule"];
