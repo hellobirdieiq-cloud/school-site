@@ -186,9 +186,8 @@
 
 <section id="nquiz" class="hidden">
   <div id="nplay">
-    <div class="row" style="justify-content:space-between;align-items:baseline">
+    <div class="row">
       <span class="small" id="nProgressText"></span>
-      <span class="nscore" id="nScore">0 / 0</span>
     </div>
     <div class="bar"><div id="nProgressBar"></div></div>
     <p class="small" style="margin:0 0 10px;text-align:left">
@@ -865,8 +864,8 @@ function nScoreNow(){
   return { attempted: rs.length, correct: rs.filter(r => r.correct).length };
 }
 function nDrawScore(){
+  // no running score while playing — just the progress bar (score shows at the end)
   const s = nScoreNow();
-  $("nScore").textContent = `${s.correct} / ${s.attempted}`;
   $("nProgressBar").style.width = `${(s.attempted / nList.length) * 100}%`;
 }
 function nRender(){

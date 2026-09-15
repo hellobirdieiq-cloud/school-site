@@ -67,7 +67,6 @@
   <div id="quiz">
     <div class="topbar">
       <span class="small" id="progressText"></span>
-      <span class="score" id="score">0 / 0</span>
     </div>
     <div class="bar"><div id="progressBar"></div></div>
     <p class="sentence" id="sentence"></p>
@@ -102,8 +101,8 @@ function score(){
   return { attempted: rs.length, correct: rs.filter(r => r.correct).length };
 }
 function drawScore(){
+  // no running score while playing — score shows on the final screen
   const s = score();
-  $("score").textContent = `${s.correct} / ${s.attempted}`;
   $("progressBar").style.width = `${(s.attempted/DATA.sentences.length)*100}%`;
 }
 
