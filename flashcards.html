@@ -90,7 +90,7 @@
   .you td{background:var(--soft)}
   /* nouns-quiz styles (mirrors nouns.html) */
   .nsentence{background:var(--soft);border-radius:14px;padding:18px 16px;
-    font-size:22px;line-height:2.2;margin:0 0 14px;user-select:none;
+    font-size:30px;line-height:2;margin:0 0 14px;user-select:none;
     -webkit-user-select:none;-webkit-tap-highlight-color:transparent}
   .w{padding:12px 1px;text-decoration-thickness:2px;text-underline-offset:5px}
   .w[data-s="1"]{text-decoration:underline}
@@ -193,15 +193,14 @@
     <p class="small" style="margin:0 0 10px;text-align:left">
       Tap a word to underline it.<br>
       Common noun – <span class="u1">once</span><br>
-      Proper noun – <span class="u2">twice</span><br>
-      <span style="font-size:13px;opacity:.75">Third tap clears.</span></p>
+      Proper noun – <span class="u2">twice</span></p>
     <p class="nsentence" id="nSentence"></p>
     <div class="verdict" id="nVerdict"></div>
     <p class="gradenote" id="nGradeNote"></p>
     <p class="row">
       <button class="primary" id="nCheckBtn">Check</button>
       <button class="hidden" id="nNextBtn">Next sentence</button>
-      <button id="nBackBtn">Back</button>
+      <button id="nBackBtn">Exit</button>
     </p>
   </div>
   <div id="nFinal" class="hidden">
@@ -209,7 +208,7 @@
     <div class="finalscore" id="nFinalScore"></div>
     <p id="nFinalNote"></p>
     <p class="row">
-      <button class="primary" id="nFinalBack">Back</button>
+      <button class="primary" id="nFinalBack">Exit</button>
       <button id="nRestartBtn">Start over</button>
     </p>
   </div>
