@@ -808,8 +808,11 @@ function acceptableWords(word){
   return set;
 }
 function recordTyped(correct, right, typed, actual, graded, secs){
-  session.answers.push({ word: DECKS[state.deck][correct][0], right,
-    picked: typed, typed, actual, graded, secs });
+  const card = DECKS[state.deck][correct];
+  session.answers.push({ word: card[0], right,
+    picked: typed, typed, actual, graded, secs,
+    prompt: state.mode === "typeWord" ? card[1] : card[0],
+    pickedShown: typed, correctShown: actual });
   if(right){ session.right++; state.right++; } else state.missed.push(correct);
   saveSession();
 }
@@ -856,7 +859,13 @@ function answer(picked, correct, btn){
   const secs = stopTimer();
   const btns = [...$("choices").children];
   btns.forEach(b => b.disabled = true);
-  session.answers.push({ word: DECKS[state.deck][correct][0], right: picked === correct, picked: DECKS[state.deck][picked][0], secs });
+  // store what he actually saw: prompt + the chosen/correct sides
+  const askDef = state.mode === "def2word";
+  session.answers.push({ word: DECKS[state.deck][correct][0],
+    right: picked === correct, picked: DECKS[state.deck][picked][0], secs,
+    prompt: askDef ? DECKS[state.deck][correct][1] : DECKS[state.deck][correct][0],
+    pickedShown: askDef ? DECKS[state.deck][picked][0] : DECKS[state.deck][picked][1],
+    correctShown: askDef ? DECKS[state.deck][correct][0] : DECKS[state.deck][correct][1] });
   if(picked === correct) session.right++;
   saveSession();
   const correctBtn = btns.find(b => +b.dataset.k === correct);
@@ -1033,6 +1042,7 @@ function nGrade(){
   const result = { v: 2,
     correct: notNoun.length === 0 && wrongType.length === 0 && missed.length === 0,
     missed, wrongType, notNoun };
+  result.fb = nSummaryText(result);   // plain feedback text for the parent view
   const p = nLoadP();
   p.states[s.n] = nTokens.map(sp => +sp.dataset.s);
   p.results[s.n] = result;
@@ -1046,7 +1056,8 @@ function nGrade(){
     total: nList.length, answered: gradedList.length,
     right: gradedList.filter(x => p.results[x.n].correct).length,
     finished: gradedList.length === nList.length, when: p.when,
-    sentences: gradedList.map(x => ({ n: x.n, right: !!p.results[x.n].correct })) };
+    sentences: gradedList.map(x => ({ n: x.n, text: x.text,
+      right: !!p.results[x.n].correct, fb: p.results[x.n].fb || "" })) };
   entry.up = Date.now();
   const allS = loadSessions();
   const at = allS.findIndex(x => x.id === p.sid);
@@ -1065,6 +1076,18 @@ function nLabelOf(idxs){
              .filter(Boolean).join(" ");
 }
 const N_TYPE_WORD = { C: "common", P: "proper" };
+function nSummaryText(result){
+  // plain-text version of the on-screen feedback ("" when correct)
+  if(result.correct) return "";
+  const parts = [];
+  if(result.missed.length)
+    parts.push("Missed: " + result.missed.map(m => `${nLabelOf(m.i)} (${N_TYPE_WORD[m.t]}${m.part ? " — underline the whole thing" : ""})`).join(", "));
+  if(result.wrongType.length)
+    parts.push("Wrong type: " + result.wrongType.map(m => `${nLabelOf(m.i)} (${N_TYPE_WORD[m.t]})`).join(", "));
+  if(result.notNoun.length)
+    parts.push("Not a noun: " + result.notNoun.map(nLabelOf).join(", "));
+  return parts.join(" · ");
+}
 function nApplyGrade(result){
   $("nGradeNote").innerHTML = "";
   result.notNoun.forEach(idxs => idxs.forEach(k => nTokens[k] && nTokens[k].classList.add("struckw")));

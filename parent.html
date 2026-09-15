@@ -20,14 +20,25 @@
   .small{font-size:14px;color:#9aa6c2}
   select{font:inherit;color:var(--ink);background:var(--soft);border:2px solid var(--line);
     border-radius:10px;padding:8px 12px;margin:12px 0}
-  .run{border:2px solid var(--line);border-radius:12px;padding:10px 14px;margin-bottom:10px;
-    display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap}
+  .run{border:2px solid var(--line);border-radius:12px;padding:10px 14px;margin-bottom:10px}
+  .run .top{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;cursor:pointer}
   .run .sc{font-weight:800;font-size:19px;min-width:70px}
   .run .who{font-weight:700}
   .run .meta{color:#9aa6c2;font-size:14px}
   .live{color:var(--mark);font-weight:700;font-size:14px}
   .ok{color:var(--go)} .bad{color:var(--no)}
   .err{color:var(--no);font-weight:700}
+  .detail{margin-top:10px;border-top:1px solid var(--line);padding-top:8px}
+  .qline{font-size:15px;padding:5px 0;border-bottom:1px solid var(--line);line-height:1.4}
+  .qline:last-child{border-bottom:none}
+  .qline .mk{font-weight:800;margin-right:6px}
+  .qline.bad{color:var(--no)}
+  .qline .q{color:var(--ink)}
+  .qline.bad .q{color:var(--no)}
+  .qline .fb{color:#9aa6c2}
+  .qline.bad .fb{color:var(--no)}
+  .nodetail{color:#9aa6c2;font-size:14px}
+  .chev{color:#9aa6c2;font-size:12px;margin-right:4px}
 </style>
 </head>
 <body>
@@ -43,34 +54,61 @@ const SYNC_URL = "https://school-sync.school-sync.workers.dev/r";
 const SYNC_TOK = "2cBf3scAPtUbxtssRBXcPYHuB8C_xxU6";
 const $ = id => document.getElementById(id);
 let rows = [];
+const open = new Set();          // ids of expanded rows (survive refresh)
+const esc = s => String(s == null ? "" : s)
+  .replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
 
 function pctClass(p){ return p >= 90 ? "ok" : p >= 70 ? "" : "bad"; }
+function detailHtml(r){
+  if(r.kind === "nouns"){
+    if(!r.sentences || !r.sentences.length || r.sentences[0].text === undefined)
+      return '<div class="nodetail">no detail saved</div>';
+    return r.sentences.map(x => `<div class="qline ${x.right?'':'bad'}">
+      <span class="mk">${x.n} ${x.right?'✓':'✗'}</span>
+      <span class="q">${esc(x.text)}</span>${x.fb ? ` <span class="fb">— ${esc(x.fb)}</span>` : ''}</div>`).join("");
+  }
+  // flashcards
+  if(!r.answers || !r.answers.length) return '<div class="nodetail">no detail saved</div>';
+  if(r.answers[0].prompt === undefined) return '<div class="nodetail">no detail saved</div>';
+  return r.answers.map((a, i) => `<div class="qline ${a.right?'':'bad'}">
+    <span class="mk">${i+1} ${a.right?'✓':'✗'}</span>
+    <span class="q">${esc(a.prompt)}</span>${a.right ? ''
+      : ` <span class="fb">— picked: ${esc(a.pickedShown)} · correct: ${esc(a.correctShown)}</span>`}</div>`).join("");
+}
 function render(){
   const who = $("who").value;
   const names = [...new Set(rows.map(r => r.name))].sort();
-  const cur = $("who").value;
   $("who").innerHTML = '<option value="">Everyone</option>' +
-    names.map(n => `<option value="${n}">${n}</option>`).join("");
-  $("who").value = cur;
+    names.map(n => `<option value="${esc(n)}">${esc(n)}</option>`).join("");
+  $("who").value = who;
   const shown = rows.filter(r => !who || r.name === who);
   if(!shown.length){ $("list").innerHTML = '<p class="small">No runs yet.</p>'; return; }
   $("list").innerHTML = shown.map(r => {
     const isNouns = r.kind === "nouns";
     const done = isNouns ? (r.answered ?? r.total) : (r.answers ? r.answers.length : 0);
-    const label = isNouns ? r.deck
-      : `${r.deck} · ${r.n} choices`;
+    const label = isNouns ? esc(r.deck) : `${esc(r.deck)} · ${r.n} choices`;
     const pct = done ? Math.round(r.right / done * 100) : 0;
     const status = r.finished
       ? `finished · <span class="${pctClass(pct)}">${pct}%</span>`
       : `<span class="live">in progress — on question ${Math.min(done + 1, r.total)} of ${r.total}</span>`;
-    return `<div class="run">
-      <span><span class="sc">${r.right}/${done}</span></span>
-      <span style="flex:1;min-width:200px"><span class="who">${r.name}</span>
-        <span class="meta">· ${label}</span><br><span class="meta">${status}</span></span>
-      <span class="meta" style="text-align:right">${new Date(r.when).toLocaleString([], {dateStyle:"short", timeStyle:"short"})}</span>
+    const isOpen = open.has(r.id);
+    return `<div class="run" data-id="${esc(r.id)}">
+      <div class="top">
+        <span><span class="sc">${r.right}/${done}</span></span>
+        <span style="flex:1;min-width:200px"><span class="chev">${isOpen?'▾':'▸'}</span><span class="who">${esc(r.name)}</span>
+          <span class="meta">· ${label}</span><br><span class="meta">${status}</span></span>
+        <span class="meta" style="text-align:right">${new Date(r.when).toLocaleString([], {dateStyle:"short", timeStyle:"short"})}</span>
+      </div>
+      ${isOpen ? `<div class="detail">${detailHtml(r)}</div>` : ''}
     </div>`;
   }).join("");
 }
+$("list").addEventListener("click", e => {
+  const run = e.target.closest(".run"); if(!run) return;
+  const id = run.dataset.id;
+  open.has(id) ? open.delete(id) : open.add(id);
+  render();
+});
 async function pull(){
   try {
     const r = await fetch(SYNC_URL, { headers: { "x-tok": SYNC_TOK } });
