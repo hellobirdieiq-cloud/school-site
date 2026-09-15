@@ -59,7 +59,23 @@ const esc = s => String(s == null ? "" : s)
   .replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
 
 function pctClass(p){ return p >= 90 ? "ok" : p >= 70 ? "" : "bad"; }
+function prayerStatus(r){
+  return r.reviewStage === "learned" ? "Learned"
+    : (r.dueAt && Date.now() >= r.dueAt) ? "Due for review"
+    : r.reviewStage === "initial" ? "learning" : `review ${r.reviewStage}`;
+}
 function detailHtml(r){
+  if(r.kind === "prayer"){
+    const groups = (r.groups || []).map((g, i) =>
+      `<div class="qline ${g.level === "recited" ? "" : "bad"}">
+        <span class="mk">${i+1}</span>
+        <span class="q">${esc(g.level)}${g.lastRecite ? ` <span class="fb">— self-check: ${g.lastRecite === "got" ? "got it" : "try again"}</span>` : ""}</span></div>`).join("");
+    const rev = `<div class="qline"><span class="q">Review: ${esc(prayerStatus(r))}${r.dueAt ? ` (due ${new Date(r.dueAt).toLocaleDateString()})` : ""}</span></div>`;
+    const full = r.lastFullReciteAt
+      ? `<div class="qline ${r.lastFullResult === "pass" ? "" : "bad"}"><span class="q">Last full recite: ${esc(r.lastFullResult || "?")} · ${new Date(r.lastFullReciteAt).toLocaleDateString()}</span></div>`
+      : `<div class="qline"><span class="q">No full recite yet</span></div>`;
+    return groups + rev + full;
+  }
   if(r.kind === "nouns"){
     if(!r.sentences || !r.sentences.length || r.sentences[0].text === undefined)
       return '<div class="nodetail">no detail saved</div>';
@@ -84,17 +100,22 @@ function render(){
   const shown = rows.filter(r => !who || r.name === who);
   if(!shown.length){ $("list").innerHTML = '<p class="small">No runs yet.</p>'; return; }
   $("list").innerHTML = shown.map(r => {
-    const isNouns = r.kind === "nouns";
-    const done = isNouns ? (r.answered ?? r.total) : (r.answers ? r.answers.length : 0);
-    const label = isNouns ? esc(r.deck) : `${esc(r.deck)} · ${r.n} choices`;
+    const isNouns = r.kind === "nouns", isPrayer = r.kind === "prayer";
+    const done = isPrayer ? (r.reciteCount ?? 0)
+      : isNouns ? (r.answered ?? r.total) : (r.answers ? r.answers.length : 0);
+    const label = isPrayer ? `${esc(r.title)} — memorize`
+      : isNouns ? esc(r.deck) : `${esc(r.deck)} · ${r.n} choices`;
     const pct = done ? Math.round(r.right / done * 100) : 0;
-    const status = r.finished
+    const status = isPrayer
+      ? `<span class="${r.reviewStage === "learned" ? "ok" : (r.dueAt && Date.now() >= r.dueAt) ? "live" : ""}">${done}/${r.total} groups at Recite · ${prayerStatus(r)}</span>`
+      : r.finished
       ? `finished · <span class="${pctClass(pct)}">${pct}%</span>`
       : `<span class="live">in progress — on question ${Math.min(done + 1, r.total)} of ${r.total}</span>`;
+    const scLeft = isPrayer ? `${done}/${r.total}` : `${r.right}/${done}`;
     const isOpen = open.has(r.id);
     return `<div class="run" data-id="${esc(r.id)}">
       <div class="top">
-        <span><span class="sc">${r.right}/${done}</span></span>
+        <span><span class="sc">${scLeft}</span></span>
         <span style="flex:1;min-width:200px"><span class="chev">${isOpen?'▾':'▸'}</span><span class="who">${esc(r.name)}</span>
           <span class="meta">· ${label}</span><br><span class="meta">${status}</span></span>
         <span class="meta" style="text-align:right">${new Date(r.when).toLocaleString([], {dateStyle:"short", timeStyle:"short"})}</span>

@@ -117,6 +117,19 @@
   .spk.mini{min-width:38px;min-height:38px;font-size:16px;padding:4px 8px}
   .choicewrap{display:flex;align-items:center;gap:8px}
   .choicewrap .choicebtn{flex:1}
+  /* prayers memorization */
+  .praygroup{background:var(--soft);border-radius:14px;padding:16px 18px;font-size:22px;
+    line-height:1.9;white-space:pre-wrap;margin:0 0 12px}
+  .pblank{display:inline-block;min-width:70px;border-bottom:3px solid var(--mark);
+    text-align:center;cursor:pointer;color:var(--mark);font-weight:800}
+  .pfill{font-weight:800;color:var(--go)}
+  .pfill.rev{color:var(--no)}
+  .praychoices{display:flex;flex-wrap:wrap;gap:8px;margin:8px 0 14px}
+  .praychoices button{font-size:19px;padding:10px 16px}
+  .praychoices button.right{background:var(--go-bg);border-color:var(--go)}
+  .praychoices button.wrong{background:var(--no-bg);border-color:var(--no)}
+  .praytitle{font-size:26px;font-weight:800;margin:2px 0 6px}
+  .praylevel{font-size:14px;color:#9aa6c2;text-transform:uppercase;letter-spacing:.06em;margin:0 0 6px}
 </style>
 </head>
 <body>
@@ -237,6 +250,19 @@
       <button id="nRestartBtn">Start over</button>
     </p>
   </div>
+</section>
+
+<section id="pray" class="hidden">
+  <div class="row" style="align-items:flex-start;gap:10px">
+    <button class="spk" id="praySpeak" title="Read it aloud" aria-label="Read it aloud">🔊</button>
+    <div style="flex:1">
+      <div class="praytitle" id="prayTitle"></div>
+      <div class="praylevel" id="prayLevel"></div>
+    </div>
+  </div>
+  <div id="prayBody"></div>
+  <p class="gradenote" id="prayNote"></p>
+  <p class="row" id="prayBtns"></p>
 </section>
 
 <section id="quiz" class="hidden">
@@ -405,6 +431,65 @@ const DECK_RENAME = { "Science": "Science 1-1",
                       "Science 1-3 (unfinished)": "Science 1-3",
                       "Geography": "Geography 1" };
 // ---------- END DATA ----------
+
+// ---------- PRAYERS (locked text; groups pre-split, Amen merged) ----------
+const PRAYERS = [
+  { key:"our-father", title:"Our Father", groups:[
+    { lines:["Our Father, Who art in heaven,","hallowed be Thy name;"], eligible:[1,5,6,9] },
+    { lines:["Thy kingdom come;","Thy will be done on earth as it is in heaven."], eligible:[1,2,4,6,8,13] },
+    { lines:["Give us this day our daily bread;"], eligible:[0,3,5,6] },
+    { lines:["and forgive us our trespasses","as we forgive those who trespass against us;"], eligible:[1,4,7,10] },
+    { lines:["and lead us not into temptation,","but deliver us from evil.","Amen."], eligible:[1,5,7,10] },
+  ]},
+  { key:"hail-mary", title:"Hail Mary", groups:[
+    { lines:["Hail Mary, full of grace,","the Lord is with thee."], eligible:[1,4,6,9] },
+    { lines:["Blessed art thou among women,","and blessed is the fruit of thy womb, Jesus."], eligible:[0,4,9,12,13] },
+    { lines:["Holy Mary, Mother of God,","pray for us sinners,","now and at the hour of our death.","Amen."], eligible:[1,2,4,8,16] },
+  ]},
+  { key:"st-francis", title:"Prayer of St. Francis", groups:[
+    { lines:["Lord, make me an instrument of your peace."], eligible:[0,1,4,7] },
+    { lines:["Where there is hatred, let me sow love;","where there is injury, pardon;","where there is doubt, faith;","where there is despair, hope;","where there is darkness, light;","and where there is sadness, joy."], eligible:[3,7,12,17,22,27,33] },
+    { lines:["O Divine Master,","grant that I may not so much seek","to be consoled as to console;","to be understood as to understand;","to be loved as to love."], eligible:[1,2,10,13,19,25] },
+    { lines:["For it is in giving that we receive;","it is in pardoning that we are pardoned;","and it is in dying that we are born to eternal life.","Amen."], eligible:[4,7,11,20,24,27] },
+  ]},
+  { key:"hail-holy-queen", title:"The Hail, Holy Queen", groups:[
+    { lines:["Hail, Holy Queen, Mother of Mercy,","our life, our sweetness and our hope."], eligible:[2,3,5,7,9,12] },
+    { lines:["To you do we cry,","poor banished children of Eve;"], eligible:[4,6,7,9] },
+    { lines:["To you do we send up our sighs,","mourning and weeping in this valley of tears"], eligible:[4,7,8,10,13,15] },
+    { lines:["Turn then, most gracious advocate,","your eyes of mercy toward us,"], eligible:[0,3,4,6,8] },
+    { lines:["and after this exile show unto us","the blessed fruit of thy womb, Jesus."], eligible:[3,4,8,9,12,13] },
+    { lines:["O clement,","O loving,","O sweet Virgin Mary."], eligible:[1,3,5,6,7] },
+    { lines:["Pray for us, Oh Holy Mother of God..."], eligible:[0,4,5,7] },
+    { lines:["That we may be made worthy","of the promises of Christ.","Amen."], eligible:[4,5,8,10] },
+  ]},
+  { key:"glory-be", title:"The Glory Be", groups:[
+    { lines:["Glory be to the Father,","and to the Son,"], eligible:[0,4,8] },
+    { lines:["And to the Holy Spirit,"], eligible:[3,4] },
+    { lines:["As it was in the beginning,","is now,","and ever shall be,"], eligible:[5,7,9] },
+    { lines:["World without end.","AMEN."], eligible:[0,2] },
+  ]},
+  { key:"jpii-motto", title:"JPII School Motto", groups:[
+    { lines:["I believe that Jesus is present","in each of my classmates","and in my teachers,"], eligible:[1,3,5,10,14] },
+    { lines:["and therefore,","all of my actions will show","my respect for Jesus."], eligible:[5,7,9,11] },
+  ]},
+  { key:"before-exams", title:"Prayer Before Exams", groups:[
+    { lines:["Almighty God,","please help me on my exams."], eligible:[0,1,3,7] },
+    { lines:["Help me to face them","with courage and peace."], eligible:[0,3,6,8] },
+    { lines:["Help me to understand the questions that are asked,","to remember all that I've studied","and to express my answers clearly."], eligible:[3,5,8,10,14,19] },
+    { lines:["Guide and direct me","and all of my decisions,"], eligible:[0,2,8] },
+    { lines:["and help me especially","to discover my true vocation","to love and to serve you in my life."], eligible:[5,8,10,13,17] },
+    { lines:["I ask this through Christ our Lord.","Amen."], eligible:[1,4,6] },
+    { lines:["St. Joseph Cupertino.... pray for us."], eligible:[1,2] },
+  ]},
+  { key:"grace-meals", title:"Grace Before Meals", groups:[
+    { lines:["Bless us, O Lord,"], eligible:[0,3] },
+    { lines:["and these Thy gifts,"], eligible:[3] },
+    { lines:["which we are about to receive"], eligible:[5] },
+    { lines:["From thy bounty,","through Christ, our Lord.","Amen."], eligible:[2,4,6] },
+  ]},
+];
+// ---------- END PRAYERS ----------
+
 
 const $ = id => document.getElementById(id);
 
@@ -653,6 +738,7 @@ function buildQuick(){
   classGroups(Object.keys(DECKS), d => d).forEach(([cls, decks]) => {
     const grid = classSection(box, cls);
     decks.forEach(name => grid.appendChild(makeDeckBtn(name)));
+    if(cls === "Religion") PRAYERS.forEach(p => grid.appendChild(makePrayerBtn(p)));
   });
   syncQuickSaved();
 }
@@ -711,6 +797,17 @@ function renderResults(){
     ? `<p class="small">All ${nHidden} tests are hidden — tap “Show hidden”.</p>`
     : '<p class="small">No tests yet.</p>'; return; }
   $("resultsList").innerHTML = all.map(s => {
+    if(s.kind === "prayer"){
+      const act = s.hidden ? "Unhide" : "Hide";
+      const rc = s.reciteCount ?? 0;
+      const rev = s.reviewStage === "learned" ? "Learned"
+        : (s.dueAt && Date.now() >= s.dueAt) ? "Due for review"
+        : s.reviewStage === "initial" ? "learning" : `review ${s.reviewStage}`;
+      const items = (s.groups || []).map((g, i) =>
+        `<li class="${g.level === "recited" ? "ok" : ""}"><span class="mk">${g.level === "recited" ? "\u2713" : "\u2022"}</span><span>Group ${i+1}: ${g.level}${g.lastRecite ? ` \u00b7 self-check: ${g.lastRecite === "got" ? "got it" : "try again"}` : ""}</span></li>`).join("");
+      const full = s.lastFullReciteAt ? `<br><span class="meta">last full recite: ${s.lastFullResult || "?"} \u00b7 ${new Date(s.lastFullReciteAt).toLocaleDateString()}</span>` : "";
+      return `<div class="reswrap${s.hidden ? " dim" : ""}" data-id="${s.id}"><button class="swipeact" type="button">${act}</button><details class="res"><summary><span><span class="sc">${rc}/${s.total}</span> <span class="meta">groups at Recite</span><br><span class="meta">${s.name} \u00b7 ${s.title} \u2014 memorize \u00b7 ${rev}${full}</span></span><span class="meta" style="text-align:right">${new Date(s.when).toLocaleString([], {dateStyle:"short", timeStyle:"short"})}</span><button class="hidebtn" type="button">${act}</button></summary><ul>${items}</ul></details></div>`;
+    }
     if(s.kind === "nouns"){
       const act = s.hidden ? "Unhide" : "Hide";
       const done = s.answered ?? s.total;   // older entries lack `answered`
@@ -1277,6 +1374,334 @@ function nStartOver(btn){
 }
 $("nRestartBtn").onclick = () => nStartOver($("nRestartBtn"));
 
+// ================= PRAYERS MEMORIZATION ENGINE (data-driven) =================
+let PR = null;   // active prayer runtime
+function prayTok(group){
+  let wi = 0; const lines = []; const words = [];
+  group.lines.forEach(line => {
+    const toks = line.split(" ").map(raw => {
+      const m = raw.match(/^([^A-Za-z0-9]*)([\s\S]*?)([^A-Za-z0-9]*)$/);
+      const lead = m[1], core = m[2], trail = m[3];
+      const t = { raw, lead, core, trail, wi: core ? wi : null };
+      if(core){ words.push({ wi, core }); wi++; }
+      return t;
+    });
+    lines.push(toks);
+  });
+  return { lines, words, count: wi };
+}
+function prayGroupText(group){ return group.lines.join("\n"); }
+function startOfDay(ts){ const d = new Date(ts); d.setHours(0,0,0,0); return d.getTime(); }
+// add N calendar days using LOCAL date arithmetic (DST-safe: a local day may be
+// 23 or 25 hours), then normalize to local start-of-day.
+function dueInDays(n){
+  const d = new Date();
+  d.setHours(0,0,0,0);
+  d.setDate(d.getDate() + n);
+  return d.getTime();
+}
+function prayRecId(key, name){ return `prayer-${key}-${name}`; }
+function prayRecord(key, name){ return loadSessions().find(x => x.id === prayRecId(key, name)); }
+function prayNewRec(def, name, startLevel){
+  return { id: prayRecId(def.key, name), kind: "prayer", name, prayer: def.key,
+    title: def.title, total: def.groups.length,
+    groups: def.groups.map(() => ({ level: startLevel, lastRecite: null })),
+    reciteCount: 0, reviewStage: "initial", dueAt: null,
+    lastPracticedAt: Date.now(), lastFullReciteAt: null, lastFullResult: null,
+    when: Date.now(), up: Date.now() };
+}
+function praySave(){
+  PR.rec.total = PR.def.groups.length;
+  PR.rec.reciteCount = PR.rec.groups.filter(g => g.level === "recited").length;
+  PR.rec.lastPracticedAt = Date.now();
+  PR.rec.up = Date.now();
+  const all = loadSessions();
+  const i = all.findIndex(x => x.id === PR.rec.id);
+  i >= 0 ? all[i] = PR.rec : all.push(PR.rec);
+  localStorage.setItem(SKEY, JSON.stringify(all.slice(-1000)));
+  syncPush(PR.rec);
+}
+function prayBadge(def){
+  const rec = prayRecord(def.key, state.name.trim());
+  if(!rec) return "";
+  if(rec.reviewStage === "learned") return '<span class="nbadge nb-g">Learned</span>';
+  if(rec.dueAt && Date.now() >= rec.dueAt) return '<span class="nbadge nb-y">Due today</span>';
+  const rc = rec.groups.filter(g => g.level === "recited").length;
+  return `<span class="nbadge">${rc} / ${rec.total}</span>`;
+}
+function makePrayerBtn(def){
+  const b = document.createElement("button");
+  tagClass(b, "Religion");
+  b.dataset.prayer = def.key;
+  b.innerHTML = `${def.title}<small>prayer · memorize</small>` + prayBadge(def);
+  b.onclick = () => startPrayerCard(def);
+  return b;
+}
+function prayShow(){
+  $("setup").classList.add("hidden"); $("pray").classList.remove("hidden");
+  window.scrollTo(0, 0);
+}
+function prayExit(){
+  ttsStop();
+  $("pray").classList.add("hidden"); $("setup").classList.remove("hidden");
+  PR = null; buildQuick(); markQuickSelection();
+}
+function startPrayerCard(def){
+  if(!needName()) return;
+  const rec = prayRecord(def.key, state.name.trim());
+  prayShow();
+  if(rec){
+    PR = { def, rec }; PR.rec.lastPracticedAt = Date.now();
+    prayEntry();
+  } else {
+    PR = { def, rec: null };
+    prayStartChoice(def);
+  }
+}
+function prayHeader(text, level){
+  $("prayTitle").textContent = PR.def.title;
+  $("prayLevel").textContent = level || "";
+  $("prayNote").innerHTML = "";
+  $("praySpeak").dataset.say = text || "";
+}
+function prayStartChoice(def){
+  prayHeader(prayGroupText(def.groups[0]), "");
+  $("prayBody").innerHTML = `<p class="small">Ready to memorize ${def.title}?</p>`;
+  $("prayBtns").innerHTML = "";
+  const learn = document.createElement("button"); learn.className = "primary"; learn.textContent = "Start learning";
+  const known = document.createElement("button"); known.textContent = "I already know some";
+  const exit = document.createElement("button"); exit.textContent = "Exit";
+  learn.onclick = () => { PR.rec = prayNewRec(def, state.name.trim(), "learn"); praySave(); prayEntry(); };
+  known.onclick = () => { PR.rec = prayNewRec(def, state.name.trim(), "hard"); praySave(); prayEntry(); };
+  exit.onclick = prayExit;
+  $("prayBtns").append(learn, known, exit);
+}
+function allRecited(){ return PR.rec.groups.every(g => g.level === "recited"); }
+function prayEntry(){
+  const rec = PR.rec;
+  const learned = rec.reviewStage === "learned";
+  const due = rec.dueAt != null && Date.now() >= rec.dueAt;
+  if(due && rec.lastFullReciteAt && !learned && allRecited()){ startWhole(); return; }
+  if(allRecited() && rec.reviewStage === "initial"){ startWhole(); return; }
+  const gi = rec.groups.findIndex(g => g.level !== "recited");
+  if(gi < 0){ prayDone(learned ? "This prayer is Learned. Nice work!" : "Nothing to practice right now."); return; }
+  teachGroup(gi);
+}
+function teachGroup(gi){
+  PR.gi = gi; PR.mode = PR.rec.groups[gi].level; PR.blanks = null;
+  prayRenderCurrent();
+}
+function prayRenderCurrent(){
+  if(PR.mode === "learn") prayRenderLearn();
+  else if(PR.mode === "easy" || PR.mode === "hard") prayRenderBlanks();
+  else if(PR.mode === "recite") prayRenderRecite(PR.gi, false);
+}
+function prayRenderLearn(){
+  const g = PR.def.groups[PR.gi];
+  prayHeader(prayGroupText(g), `Learn — group ${PR.gi + 1} of ${PR.def.groups.length}`);
+  $("prayBody").innerHTML = `<div class="praygroup">${prayGroupText(g)}</div>`;
+  $("prayBtns").innerHTML = "";
+  const cont = document.createElement("button"); cont.className = "primary"; cont.textContent = "Continue";
+  const exit = document.createElement("button"); exit.textContent = "Exit";
+  cont.onclick = () => { PR.rec.groups[PR.gi].level = "easy"; praySave(); PR.mode = "easy"; PR.blanks = null; prayRenderCurrent(); };
+  exit.onclick = prayExit;
+  $("prayBtns").append(cont, exit);
+}
+function prayUniqueEligible(g){
+  const tok = prayTok(g), s = new Set();
+  g.eligible.forEach(idx => { const w = tok.words.find(x => x.wi === idx); if(w) s.add(w.core.toLowerCase()); });
+  return s.size;
+}
+function prayBlankCount(g, level){
+  const wc = prayTok(g).count, uniq = prayUniqueEligible(g);
+  if(wc < 6) return level === "easy" ? Math.min(1, uniq) : Math.min(2, uniq);
+  const hard = Math.min(3, uniq);            // cap Hard at 3 (4 or 6 eligible -> 3)
+  const easy = Math.max(1, hard - 1);        // Easy is one fewer, so Hard is strictly harder when uniq >= 2
+  return level === "easy" ? easy : hard;
+}
+// pick `count` eligible indices with distinct word values (case-insensitive) — never blank the same word twice
+function prayPickBlanks(g, count){
+  const tok = prayTok(g), coreOf = idx => tok.words.find(w => w.wi === idx).core.toLowerCase();
+  const chosen = [], used = new Set();
+  for(const idx of shuffle(g.eligible.slice())){
+    const c = coreOf(idx);
+    if(used.has(c)) continue;
+    used.add(c); chosen.push(idx);
+    if(chosen.length >= count) break;
+  }
+  return new Set(chosen);
+}
+function prayDistractors(core){
+  const cl = core.toLowerCase(), seen = new Set([cl]), pool = [];
+  PR.def.groups.forEach(g => prayTok(g).words.forEach(w => {
+    const k = w.core.toLowerCase();
+    if(seen.has(k)) return; seen.add(k); pool.push(w.core);
+  }));
+  pool.sort((a, b) => Math.abs(a.length - core.length) - Math.abs(b.length - core.length));
+  return pool.slice(0, 2);
+}
+function prayRenderBlanks(){
+  const g = PR.def.groups[PR.gi], tok = prayTok(g);
+  if(!PR.blanks){
+    PR.blanks = prayPickBlanks(g, prayBlankCount(g, PR.mode));
+    PR.filled = new Map(); PR.hadWrong = false;
+  }
+  prayHeader(prayGroupText(g), `${PR.mode === "easy" ? "Easy" : "Hard"} — group ${PR.gi + 1} of ${PR.def.groups.length}`);
+  const coreOf = wi => tok.words.find(w => w.wi === wi).core;
+  const html = tok.lines.map(line => line.map(t => {
+    if(t.wi != null && PR.blanks.has(t.wi)){
+      const f = PR.filled.get(t.wi);
+      if(f) return t.lead + `<span class="pfill${f.rev ? " rev" : ""}">${f.text}</span>` + t.trail;
+      return t.lead + `<span class="pblank" data-wi="${t.wi}">_____</span>` + t.trail;
+    }
+    return t.raw;
+  }).join(" ")).join("\n");
+  $("prayBody").innerHTML = `<div class="praygroup" id="prayGroupBox">${html}</div><div class="praychoices" id="prayChoices"></div>`;
+  $("prayBtns").innerHTML = "";
+  const exit = document.createElement("button"); exit.textContent = "Exit"; exit.onclick = prayExit;
+  $("prayBtns").append(exit);
+  $("prayGroupBox").onclick = e => {
+    const bl = e.target.closest(".pblank"); if(!bl) return;
+    const wi = +bl.dataset.wi; if(PR.filled.has(wi)) return;
+    const correct = coreOf(wi);
+    const opts = shuffle([correct, ...prayDistractors(correct)]);
+    const box = $("prayChoices"); box.innerHTML = "";
+    opts.forEach(o => {
+      const b = document.createElement("button"); b.textContent = o;
+      b.onclick = () => prayGuess(wi, o, correct, b);
+      box.appendChild(b);
+    });
+  };
+}
+function prayGuess(wi, chosen, correct, btn){
+  const right = chosen === correct;
+  PR.filled.set(wi, { text: correct, rev: !right });
+  if(!right){ PR.hadWrong = true; btn.classList.add("wrong"); }
+  $("prayChoices").innerHTML = "";
+  prayRefreshBlanks();
+  if([...PR.blanks].every(x => PR.filled.has(x))) prayResolveLevel();
+}
+function prayRefreshBlanks(){
+  const g = PR.def.groups[PR.gi], tok = prayTok(g);
+  const html = tok.lines.map(line => line.map(t => {
+    if(t.wi != null && PR.blanks.has(t.wi)){
+      const f = PR.filled.get(t.wi);
+      if(f) return t.lead + `<span class="pfill${f.rev ? " rev" : ""}">${f.text}</span>` + t.trail;
+      return t.lead + `<span class="pblank" data-wi="${t.wi}">_____</span>` + t.trail;
+    }
+    return t.raw;
+  }).join(" ")).join("\n");
+  $("prayGroupBox").innerHTML = html;
+}
+function prayResolveLevel(){
+  if(PR.hadWrong){
+    $("prayNote").textContent = "Some misses — one more clean try to pass.";
+    setTimeout(() => { PR.blanks = null; prayRenderBlanks(); }, 900);
+    return;
+  }
+  const nextLevel = PR.mode === "easy" ? "hard" : "recite";
+  PR.rec.groups[PR.gi].level = nextLevel; praySave();
+  PR.mode = nextLevel; PR.blanks = null;
+  setTimeout(prayRenderCurrent, 500);
+}
+function prayFirstWords(g, n){
+  const tok = prayTok(g), out = [];
+  for(const line of tok.lines){ for(const t of line){ if(t.wi != null){ out.push(t.raw); if(out.length >= n) return out; } } }
+  return out;
+}
+function prayRenderRecite(gi, chain){
+  const g = PR.def.groups[gi];
+  PR.reciteTTS = false; PR.revealed = false; PR.reciteGi = gi; PR.reciteChain = chain;
+  prayHeader(prayGroupText(g), chain ? `Recite chain — group ${gi + 1}` : `Recite — group ${gi + 1} of ${PR.def.groups.length}`);
+  $("prayBody").innerHTML = `<div class="praygroup" id="prayGroupBox">${prayFirstWords(g, 3).join(" ")} …</div>`;
+  $("prayNote").textContent = "Say the whole group out loud, then Reveal to check.";
+  $("prayBtns").innerHTML = "";
+  const reveal = document.createElement("button"); reveal.className = "primary"; reveal.textContent = "Reveal";
+  const exit = document.createElement("button"); exit.textContent = "Exit"; exit.onclick = prayExit;
+  reveal.onclick = () => {
+    PR.revealed = true;
+    $("prayGroupBox").textContent = prayGroupText(g);
+    $("prayBtns").innerHTML = "";
+    const got = document.createElement("button"); got.className = "primary"; got.textContent = "Got it";
+    const again = document.createElement("button"); again.textContent = "Try again";
+    got.onclick = prayReciteGot;
+    again.onclick = () => { setGroupRecite(gi, "try"); prayRenderRecite(gi, chain); };
+    $("prayBtns").append(got, again, exit);
+  };
+  $("prayBtns").append(reveal, exit);
+}
+function setGroupRecite(gi, val){ PR.rec.groups[gi].lastRecite = val; praySave(); }
+function prayReciteGot(){
+  const gi = PR.reciteGi, chain = PR.reciteChain;
+  if(PR.reciteTTS){
+    $("prayNote").textContent = "You used the speaker — try once more without it.";
+    setTimeout(() => prayRenderRecite(gi, chain), 700);
+    return;
+  }
+  setGroupRecite(gi, "got");
+  if(chain){
+    PR.chainPos++;
+    if(PR.chainPos >= PR.chainQ.length){ const a = PR.afterChain; a(); }
+    else prayRenderRecite(PR.chainQ[PR.chainPos], true);
+    return;
+  }
+  PR.rec.groups[gi].level = "recited"; praySave();
+  afterSingleRecite(gi);
+}
+function afterSingleRecite(gi){
+  const last = PR.def.groups.length - 1;
+  if(gi === 0){ last >= 1 ? teachGroup(1) : startWhole(); return; }
+  startChain(0, gi, () => (gi < last ? teachGroup(gi + 1) : startWhole()));
+}
+function startChain(a, b, after){
+  PR.mode = "chain"; PR.chainQ = []; for(let i = a; i <= b; i++) PR.chainQ.push(i);
+  PR.chainPos = 0; PR.afterChain = after;
+  $("prayNote").textContent = "Now recite the groups so far, in order.";
+  prayRenderRecite(PR.chainQ[0], true);
+}
+function startWhole(){
+  PR.mode = "whole";
+  prayHeader(PR.def.groups.map(prayGroupText).join("\n\n"), "Whole prayer");
+  $("prayBody").innerHTML = `<div class="praygroup" style="text-align:center;font-size:26px">${PR.def.title}</div>`;
+  $("prayNote").textContent = "Say the whole prayer out loud to a grown-up.";
+  $("prayBtns").innerHTML = "";
+  const got = document.createElement("button"); got.className = "primary"; got.textContent = "Got it all";
+  const missed = document.createElement("button"); missed.textContent = "Missed some";
+  const exit = document.createElement("button"); exit.textContent = "Exit"; exit.onclick = prayExit;
+  got.onclick = passFull; missed.onclick = missedFull;
+  $("prayBtns").append(got, missed, exit);
+}
+function passFull(){
+  const prev = PR.rec.reviewStage;
+  const nextS = { initial: "1d", "1d": "3d", "3d": "7d", "7d": "learned" }[prev] || "1d";
+  const off = { initial: 1, "1d": 3, "3d": 7 }[prev];
+  PR.rec.reviewStage = nextS;
+  PR.rec.dueAt = nextS === "learned" ? null : dueInDays(off);
+  PR.rec.lastFullReciteAt = Date.now(); PR.rec.lastFullResult = "pass";
+  praySave(); syncReconcile();
+  prayDone(nextS === "learned" ? "You LEARNED this prayer! Amazing." : "Great job reciting the whole prayer!");
+}
+function missedFull(){
+  PR.rec.lastFullResult = "missed";
+  PR.rec.groups.forEach(g => { g.level = "hard"; });
+  praySave();
+  $("prayNote").textContent = "Let's review the tricky parts.";
+  prayEntry();
+}
+function prayDone(msg){
+  PR.mode = "done";
+  prayHeader("", "");
+  $("prayBody").innerHTML = `<div class="praygroup" style="text-align:center">${msg}<br><span class="small">One prayer per session — take a break!</span></div>`;
+  $("prayBtns").innerHTML = "";
+  const exit = document.createElement("button"); exit.className = "primary"; exit.textContent = "Done"; exit.onclick = prayExit;
+  $("prayBtns").append(exit);
+}
+$("praySpeak").onclick = () => {
+  if(PR && (PR.mode === "recite" || PR.mode === "chain")) PR.reciteTTS = true;
+  speak($("praySpeak").dataset.say || "", $("praySpeak"));
+};
+// ================= end prayers engine =================
+
 // wire up
 const NAME_PILLS = ["Luca", "The Mule", "Anon"];
 function syncNamePick(){
@@ -1342,7 +1767,7 @@ if(TTS){
   };
 } else {
   // no speech support: hide all speaker UI
-  ["nSpeak","promptSpeak","choicesSpeak","ttsTest"].forEach(id => $(id) && $(id).classList.add("hidden"));
+  ["nSpeak","promptSpeak","choicesSpeak","ttsTest","praySpeak"].forEach(id => $(id) && $(id).classList.add("hidden"));
   const n = $("ttsNote"); if(n) n.textContent = "Read-aloud isn't available in this browser.";
 }
 function segFromSaved(id, v){ [...$(id).children].forEach(b => b.setAttribute("aria-pressed", b.dataset.v === String(v))); }
