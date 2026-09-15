@@ -74,7 +74,9 @@
   .res li .pk{color:#9aa6c2}
   .quick{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:12px}
   .quick button{text-align:left;padding:18px 20px;font-size:22px;font-weight:700;border-color:var(--ink);
-    border-left:6px solid var(--cc,var(--ink))}
+    border-left:6px solid var(--cc,var(--ink));position:relative}
+  .nbadge{position:absolute;top:8px;right:12px;font-size:13px;font-weight:700;color:#9aa6c2}
+  .nbadge.nb-g{color:var(--go)} .nbadge.nb-y{color:var(--mark)} .nbadge.nb-r{color:var(--no)}
   .quick button small{display:block;font-size:15px;font-weight:400;color:#9aa6c2;margin-top:4px}
   .quick button:hover{border-color:var(--mark)}
   .quick button[aria-pressed="true"]{background:var(--mark);color:#0f1626;border-color:var(--mark)}
@@ -123,7 +125,6 @@
 
 
   <h2 class="sect">Start a quiz</h2>
-  <p class="small" style="margin:0 0 10px">Every word, 6 choices, see the meaning and pick the word.</p>
   <div id="quickDecks"></div>
 
   <div id="quickSaved" class="hidden">
@@ -522,11 +523,25 @@ function makeDeckBtn(name){
   };
   return b;
 }
+function nounBadge(set){
+  // same flashcardSessions entries the Results tab reads, current nickname
+  const name = state.name.trim();
+  const runs = loadSessions().filter(s => s.kind === "nouns" && s.name === name && s.deck === set.label);
+  const fin = runs.filter(s => s.finished).sort((a, b) => a.when - b.when).pop();
+  if(fin){
+    const pct = Math.round(fin.right / fin.total * 100);
+    const cls = pct >= 90 ? "nb-g" : pct >= 70 ? "nb-y" : "nb-r";
+    return `<span class="nbadge ${cls}">${pct}%</span>`;
+  }
+  const prog = runs.filter(s => !s.finished).sort((a, b) => a.when - b.when).pop();
+  if(prog) return `<span class="nbadge">${prog.answered ?? 0} / ${prog.total}</span>`;
+  return "";
+}
 function makeNounBtn(set){
   const b = document.createElement("button");
   tagClass(b, "English");
   b.dataset.nounset = set.k;
-  b.innerHTML = `${set.label}<small>sentences ${set.from}–${set.to} · underline the nouns</small>`;
+  b.innerHTML = `${set.label}<small>sentences ${set.from}–${set.to} · underline the nouns</small>` + nounBadge(set);
   b.onclick = () => startNounSet(set);   // always starts, settings open or not
   return b;
 }
@@ -534,6 +549,10 @@ function buildQuick(){
   const box = $("quickDecks"); box.innerHTML = "";
   const engGrid = classSection(box, "English");
   NOUN_SETS.forEach(set => engGrid.appendChild(makeNounBtn(set)));
+  const hint = document.createElement("p");
+  hint.className = "small"; hint.style.margin = "22px 0 -6px";
+  hint.textContent = "Every word, 6 choices, see the meaning and pick the word.";
+  box.appendChild(hint);
   classGroups(Object.keys(DECKS), d => d).forEach(([cls, decks]) => {
     const grid = classSection(box, cls);
     decks.forEach(name => grid.appendChild(makeDeckBtn(name)));
@@ -1017,6 +1036,7 @@ function nShowFinal(){
 function nExit(){
   $("nquiz").classList.add("hidden"); $("nplay").classList.remove("hidden");
   $("nFinal").classList.add("hidden"); $("setup").classList.remove("hidden");
+  buildQuick(); markQuickSelection();     // refresh nouns badges
 }
 function startNounSet(set){
   if(!needName()) return;                 // same nickname flow as flashcards
@@ -1092,12 +1112,12 @@ $("namePick").addEventListener("click", e => {
   const b = e.target.closest("button"); if(!b) return;
   state.name = b.dataset.v; localStorage.setItem("flashcardName", state.name);
   $("nameInput").value = ""; $("nameInput").style.borderColor = "";
-  syncNamePick(); updateNotes();
+  syncNamePick(); updateNotes(); buildQuick(); markQuickSelection();
 });
 $("nameInput").oninput = e => {
   state.name = e.target.value; e.target.style.borderColor = "";
   localStorage.setItem("flashcardName", state.name);
-  syncNamePick(); updateNotes();
+  syncNamePick(); updateNotes(); buildQuick(); markQuickSelection();
 };
 buildCardList(); refreshSavedList(); buildQuick();
 $("adjustBtn").onclick = () => {
