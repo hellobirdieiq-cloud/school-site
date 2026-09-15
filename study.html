@@ -636,7 +636,11 @@ function renderResults(){
       const act = s.hidden ? "Unhide" : "Hide";
       const done = s.answered ?? s.total;   // older entries lack `answered`
       const status = s.finished ? "finished" : `stopped after ${done} of ${s.total}`;
-      const cont = (!s.finished && !s.hidden)
+      // Continue only when THIS record is the live resumable run on this
+      // device (its set's progress key still points at this run's id and
+      // it isn't complete). Stale/finished/other-device records get none, so
+      // Continue can never open a different run than the one clicked.
+      const cont = nounsResumable(s)
         ? '<button class="contbtn" type="button">Continue</button>' : "";
       const items = (s.sentences || []).map(x =>
         `<li class="${x.right?'ok':'bad'}"><span class="mk">${x.right?'✓':'✗'}</span><span>Sentence ${x.n}</span></li>`).join("");
@@ -674,6 +678,19 @@ function resumeSession(id){
   session = s;
   $("results").classList.add("hidden"); $("quiz").classList.remove("hidden");
   showQuestion();
+}
+function nounsSetK(s){
+  return s.setk || parseInt((String(s.deck).match(/\d+/) || [0])[0], 10);
+}
+function nounsResumable(s){
+  // true only if this device's progress for the set still holds THIS run
+  // (same id) and it's unfinished — the one run Continue can safely reopen.
+  if(s.kind !== "nouns" || s.finished || s.hidden) return false;
+  try {
+    const p = JSON.parse(localStorage.getItem(`nounsApp_${s.name}_${nounsSetK(s)}`));
+    return !!(p && p.sid === s.id &&
+      Object.keys(p.results || {}).length < (s.total || 20));
+  } catch(e){ return false; }
 }
 function showResults(from){
   $("setup").classList.add("hidden"); $("done").classList.add("hidden"); $("quiz").classList.add("hidden");
@@ -1245,8 +1262,8 @@ $("resultsList").addEventListener("click", e => {
     e.preventDefault(); e.stopPropagation();
     const sess = loadSessions().find(x => x.id === w.dataset.id);
     if(sess && sess.kind === "nouns"){
-      const k = sess.setk || parseInt((sess.deck.match(/\d+/) || [1])[0], 10);
-      const set = NOUN_SETS.find(x => x.k === k);
+      if(!nounsResumable(sess)) return;     // only reopen the live matching run
+      const set = NOUN_SETS.find(x => x.k === nounsSetK(sess));
       if(set){
         state.name = sess.name;             // resume under the entry's nickname
         $("nameInput").value = NAME_PILLS.includes(sess.name) ? "" : sess.name;
