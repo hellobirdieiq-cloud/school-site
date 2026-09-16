@@ -131,8 +131,11 @@
   .praytitle{font-size:26px;font-weight:800;margin:2px 0 6px}
   .praylevel{font-size:14px;color:#9aa6c2;text-transform:uppercase;letter-spacing:.06em;margin:0 0 6px}
   .flipcard{background:var(--soft);border-radius:14px;padding:8px 18px;margin:0 0 14px}
-  .flipline{font-size:23px;line-height:1.9;padding:8px 0;border-bottom:1px solid var(--line)}
-  .flipline:last-child{border-bottom:none}
+  .fliprow{display:flex;align-items:center;gap:14px;padding:10px 0;border-bottom:1px solid var(--line)}
+  .fliprow:last-child{border-bottom:none}
+  .flipcue{font-size:23px;font-weight:700;min-width:120px}
+  .flipreveal{font-size:15px;padding:6px 16px;flex:none}
+  .flipans{font-size:23px;font-weight:700;color:var(--go)}
 </style>
 </head>
 <body>
@@ -1788,12 +1791,27 @@ function flipTitleView(){
   reveal.onclick = flipReveal;
   $("flipBtns").append(reveal);
 }
+// each line is "<cue> — <answer>"; split on the em dash into the silly-sentence
+// word (cue) and the real, correctly-spelled word (answer)
+function flipParse(line){
+  const i = line.indexOf("—");
+  return i < 0 ? { cue: line.trim(), answer: "" }
+               : { cue: line.slice(0, i).trim(), answer: line.slice(i + 1).trim() };
+}
 function flipReveal(){
-  $("flipSpeak").dataset.say = FC.lines.join(". ");   // speaker reads all lines in order
+  const rows = FC.lines.map(flipParse);
+  $("flipSpeak").dataset.say = rows.map(r => r.cue).join(". ");   // speaker reads the silly sentence
   const box = $("flipBody"); box.innerHTML = "";
   const card = document.createElement("div"); card.className = "flipcard";
-  FC.lines.forEach(line => {
-    const row = document.createElement("div"); row.className = "flipline"; row.textContent = line;
+  rows.forEach(r => {
+    const row = document.createElement("div"); row.className = "fliprow";
+    const cue = document.createElement("span"); cue.className = "flipcue"; cue.textContent = r.cue;
+    const rev = document.createElement("button"); rev.className = "flipreveal"; rev.textContent = "reveal";
+    rev.onclick = () => {
+      const ans = document.createElement("span"); ans.className = "flipans"; ans.textContent = r.answer;
+      rev.replaceWith(ans);   // show the correctly-spelled word in its place
+    };
+    row.append(cue, rev);
     card.appendChild(row);
   });
   box.appendChild(card);
