@@ -518,13 +518,13 @@ const PRAYERS = [
 // ---------- FLIP CARDS (say it, then flip — no grading/results/sync) ----------
 const FLIPCARDS = [
   { section:"Science", title:"Attitudes of a Scientist — Silly Sentence", lines:[
-    "Crazy — Curiosity",
-    "Hippos — Honesty",
+    "Chunky — Curiosity",
+    "Giraffes — Good Ethics",
     "Chomp — Creativity",
     "On — Open Mindedness",
-    "Sour — Skepticism",
-    "Green — Good Ethics",
-    "Apples — Awareness of Bias"
+    "Small — Skepticism",
+    "Healthy — Honesty",
+    "Avadcado's — Awareness of Bias"
   ]}
 ];
 // ---------- END FLIP CARDS ----------
@@ -1803,6 +1803,7 @@ function flipReveal(){
   $("flipSpeak").dataset.say = rows.map(r => r.cue).join(". ");   // speaker reads the silly sentence
   const box = $("flipBody"); box.innerHTML = "";
   const card = document.createElement("div"); card.className = "flipcard";
+  let revealed = 0;
   rows.forEach(r => {
     const row = document.createElement("div"); row.className = "fliprow";
     const cue = document.createElement("span"); cue.className = "flipcue"; cue.textContent = r.cue;
@@ -1810,16 +1811,24 @@ function flipReveal(){
     rev.onclick = () => {
       const ans = document.createElement("span"); ans.className = "flipans"; ans.textContent = r.answer;
       rev.replaceWith(ans);   // show the correctly-spelled word in its place
+      if(++revealed === rows.length) flipShowRestart();   // all revealed -> offer a fresh start
     };
     row.append(cue, rev);
     card.appendChild(row);
   });
   box.appendChild(card);
   $("flipBtns").innerHTML = "";
-  const hide = document.createElement("button"); hide.className = "primary"; hide.textContent = "Hide";
+  const hide = document.createElement("button"); hide.textContent = "Hide";
   const exit = document.createElement("button"); exit.textContent = "Exit";
   hide.onclick = flipTitleView; exit.onclick = flipExit;
   $("flipBtns").append(hide, exit);
+}
+function flipShowRestart(){
+  if($("flipRestart")) return;                 // only add once
+  const again = document.createElement("button");
+  again.id = "flipRestart"; again.className = "primary"; again.textContent = "Start over";
+  again.onclick = flipReveal;                  // re-render with every answer hidden again
+  $("flipBtns").prepend(again);
 }
 $("flipSpeak").onclick = () => speak($("flipSpeak").dataset.say || "", $("flipSpeak"));
 // ================= end flip cards =================
