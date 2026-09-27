@@ -111,6 +111,8 @@
   .w.missed2{text-decoration:underline dotted var(--no);
     border-bottom:2px dotted var(--no);padding-bottom:8px}
   .w.struckw{text-decoration:line-through solid var(--no)}
+  .w.good{background:var(--go-bg);border-radius:8px;text-decoration:underline}
+  .w.bad{background:var(--no-bg);border-radius:8px;text-decoration:line-through}
   .gradenote{font-size:16px;color:#9aa6c2;margin:0 0 10px;min-height:1em}
   .gradenote b{color:var(--no);font-weight:700}
   .u1{text-decoration:underline;text-underline-offset:3px}
@@ -264,6 +266,32 @@
     <p class="row">
       <button class="primary" id="nFinalBack">Exit</button>
       <button id="nRestartBtn">Start over</button>
+    </p>
+  </div>
+</section>
+
+<section id="tquiz" class="hidden">
+  <div id="tplay">
+    <div class="row"><span class="small" id="tProgressText"></span></div>
+    <div class="bar"><div id="tProgressBar"></div></div>
+    <p class="small" style="margin:0 0 10px">Tap the indefinite pronoun in the sentence.</p>
+    <div class="row" style="align-items:flex-start;gap:10px">
+      <button class="spk" id="tSpeak" title="Read the sentence" aria-label="Read the sentence">🔊</button>
+      <p class="nsentence" id="tSentence" style="flex:1;margin:0 0 14px"></p>
+    </div>
+    <div class="verdict" id="tVerdict"></div>
+    <p class="row">
+      <button class="primary hidden" id="tNextBtn">Next sentence</button>
+      <button id="tBackBtn">Exit</button>
+    </p>
+  </div>
+  <div id="tFinal" class="hidden">
+    <h1>All done!</h1>
+    <div class="finalscore" id="tFinalScore"></div>
+    <p id="tFinalNote"></p>
+    <p class="row">
+      <button class="primary" id="tFinalBack">Exit</button>
+      <button id="tAgainBtn">Play again</button>
     </p>
   </div>
 </section>
@@ -1196,6 +1224,101 @@ const FLIPCARDS = [
 ];
 // ---------- END FLIP CARDS ----------
 
+// ---------- TAP QUIZ (indefinite pronouns: tap the pronoun in the sentence) ----------
+// Each sentence contains exactly ONE of these; the engine derives the answer.
+const PRONOUN_WORDS = ["anyone","something","nobody","some","everything"];
+const PRONOUN_SETS = [
+  { k:1, label:"Indefinite Pronouns 1", sentences:[
+    "Is anyone home right now?",
+    "Something smells yummy in the kitchen.",
+    "Nobody wanted to go to bed early.",
+    "The dog ate some of my sandwich.",
+    "I found something shiny on the playground.",
+    "Can anyone help me carry this box?",
+    "Some of the kids wore costumes to school.",
+    "Nobody knew the answer to the riddle.",
+    "Everything in my backpack got wet.",
+    "We ate some of the pizza for dinner.",
+    "Did anyone see my red backpack?",
+    "There is something under the bed!",
+    "Everything on my plate tasted good.",
+    "Nobody likes to wait in a long line.",
+    "Something fell off the shelf with a loud crash.",
+    "Does anyone have an extra pencil?",
+    "Everything was ready for the birthday party.",
+    "Mom gave some of the cookies to our neighbor.",
+    "Everything fell out of the toy box.",
+    "Nobody finished the puzzle before recess."
+  ]},
+  { k:2, label:"Indefinite Pronouns 2", sentences:[
+    "Some of the birds flew away.",
+    "Nobody saw the rabbit hop by.",
+    "Did anyone bring a snack?",
+    "Something is stuck in my shoe.",
+    "Is anyone ready for the spelling test?",
+    "I drank some of the orange juice.",
+    "The baby is holding something soft.",
+    "Nobody laughed at the silly joke.",
+    "Something made the lights turn off.",
+    "Nobody could find the TV remote.",
+    "Some of the crayons are broken.",
+    "Would anyone like more popcorn?",
+    "Everything was covered in snow.",
+    "Everything in the classroom was quiet.",
+    "My brother whispered something to me.",
+    "Some of the milk spilled on the floor.",
+    "Has anyone fed the fish today?",
+    "Everything in the fridge was cold.",
+    "Nobody heard the doorbell ring.",
+    "Everything in the garden smelled like flowers."
+  ]},
+  { k:3, label:"Indefinite Pronouns 3", sentences:[
+    "Something is buzzing near the window.",
+    "Can anyone tie my shoes?",
+    "Some of the students rode the bus.",
+    "Nobody sat in the front row.",
+    "Everything in my room is clean.",
+    "Is there something in your pocket?",
+    "Everything at the store was on sale.",
+    "The teacher read some of the story to us.",
+    "I heard something outside my window.",
+    "Some of the balloons popped at the party.",
+    "Nobody wanted the last slice of cake.",
+    "Did anyone call Grandma today?",
+    "Nobody wore a coat on the sunny day.",
+    "Everything in my lunchbox was yummy.",
+    "Does anyone know how to whistle?",
+    "Everything outside was wet after the rain.",
+    "Nobody was scared of the thunder.",
+    "Is anyone sitting in this seat?",
+    "Something jumped out of the pond!",
+    "We gave some of our toys to the shelter."
+  ]},
+  { k:4, label:"Indefinite Pronouns 4", sentences:[
+    "Nobody cleaned up the mess.",
+    "Some of the apples are red.",
+    "Something is hiding behind the tree.",
+    "Everything on the shelf is dusty.",
+    "Some of the snow melted in the sun.",
+    "Did anyone win the race?",
+    "Nobody brought an umbrella.",
+    "I lost something at the park.",
+    "Some of the fish swam to the top.",
+    "Something is making the dog bark.",
+    "Has anyone seen my kitten?",
+    "Everything in the box was new.",
+    "The kids drew something funny on the board.",
+    "Nobody could lift the heavy rock.",
+    "Some of the pages in my book are torn.",
+    "Is anyone hungry for lunch?",
+    "Everything at the zoo was fun.",
+    "Everything in the backyard was green.",
+    "Would anyone like to play tag?",
+    "Nobody touched the wet paint."
+  ]}
+];
+// ---------- END TAP QUIZ DATA ----------
+
 
 const $ = id => document.getElementById(id);
 
@@ -1474,6 +1597,7 @@ function buildQuick(){
   // English DECKS (e.g. Parts of Speech) sit next to the Nouns quizzes
   (SUBJECTS["English"] || []).filter(name => DECKS[name]).forEach(name => engGrid.appendChild(makeDeckBtn(name)));
   FLIPCARDS.filter(f => f.section === "English").forEach(f => engGrid.appendChild(makeFlipBtn(f)));
+  PRONOUN_SETS.forEach(set => engGrid.appendChild(makeTapBtn(set)));
   classGroups(Object.keys(DECKS), d => d).forEach(([cls, decks]) => {
     if(cls === "English") return;   // English decks already rendered next to the Nouns quizzes
     const grid = classSection(box, cls);
@@ -1558,6 +1682,14 @@ function renderResults(){
         `<li class="${g.level === "recited" ? "ok" : ""}"><span class="mk">${g.level === "recited" ? "\u2713" : "\u2022"}</span><span>Group ${i+1}: ${g.level}${g.lastRecite ? ` \u00b7 self-check: ${g.lastRecite === "got" ? "got it" : "try again"}` : ""}</span></li>`).join("");
       const full = s.lastFullReciteAt ? `<br><span class="meta">last full recite: ${s.lastFullResult || "?"} \u00b7 ${new Date(s.lastFullReciteAt).toLocaleDateString()}</span>` : "";
       return `<div class="reswrap${s.hidden ? " dim" : ""}" data-id="${s.id}"><button class="swipeact" type="button">${act}</button><details class="res"><summary><span><span class="sc">${rc}/${s.total}</span> <span class="meta">groups at Recite</span><br><span class="meta">${s.name} \u00b7 ${s.title} \u2014 memorize \u00b7 ${rev}${full}</span></span><span class="meta" style="text-align:right">${new Date(s.when).toLocaleString([], {dateStyle:"short", timeStyle:"short"})}</span><button class="hidebtn" type="button">${act}</button></summary><ul>${items}</ul></details></div>`;
+    }
+    if(s.kind === "tap"){
+      const act = s.hidden ? "Unhide" : "Hide";
+      const done = s.answered ?? s.total;
+      const status = s.finished ? "finished" : `stopped after ${done} of ${s.total}`;
+      const items = (s.sentences || []).map(x =>
+        `<li class="${x.right?'ok':'bad'}"><span class="mk">${x.right?'✓':'✗'}</span><span>${x.text}${x.right?'':` <span class="pk">— tapped “${x.picked}”</span>`}</span></li>`).join("");
+      return `<div class="reswrap${s.hidden ? ' dim' : ''}" data-id="${s.id}"><button class="swipeact" type="button">${act}</button><details class="res"><summary><span><span class="sc">${s.right}/${done}</span> <span class="meta">${done - s.right} wrong</span><br><span class="meta">${s.name} · ${s.deck} · tap the pronoun · ${status}</span></span><span class="meta" style="text-align:right">${new Date(s.when).toLocaleString([], {dateStyle:"short", timeStyle:"short"})}</span><button class="hidebtn" type="button">${act}</button></summary><ul>${items}</ul></details></div>`;
     }
     if(s.kind === "nouns"){
       const act = s.hidden ? "Unhide" : "Hide";
@@ -2557,6 +2689,101 @@ function flipShowRestart(){
 $("flipSpeak").onclick = () => speak($("flipSpeak").dataset.say || "", $("flipSpeak"));
 // ================= end flip cards =================
 
+// ============ tap-the-word quiz engine (indefinite pronouns) ============
+let TQ = null;   // active run: {set, order, i, right, sess}
+const tapAnswerOf = text =>
+  text.split(/\s+/).map(nNorm).find(w => PRONOUN_WORDS.includes(w));
+function tapBadge(set){
+  const name = state.name.trim();
+  const fin = loadSessions().filter(s => s.kind === "tap" && s.name === name &&
+    s.deck === set.label && s.finished).sort((a, b) => a.when - b.when).pop();
+  if(!fin) return "";
+  const pct = Math.round(fin.right / fin.total * 100);
+  const cls = pct >= 90 ? "nb-g" : pct >= 70 ? "nb-y" : "nb-r";
+  return `<span class="nbadge ${cls}">${pct}%</span>`;
+}
+function makeTapBtn(set){
+  const b = document.createElement("button");
+  tagClass(b, "English");
+  b.dataset.tapset = set.k;
+  b.innerHTML = `${set.label}<small>tap the pronoun in the sentence</small>` + tapBadge(set);
+  b.onclick = () => startTapSet(set);
+  return b;
+}
+function saveTap(){
+  TQ.sess.up = Date.now();
+  const all = loadSessions(); const at = all.findIndex(x => x.id === TQ.sess.id);
+  at >= 0 ? all[at] = TQ.sess : all.push(TQ.sess);
+  localStorage.setItem(SKEY, JSON.stringify(all.slice(-1000)));
+  syncPush(TQ.sess);
+}
+function startTapSet(set){
+  if(!needName()) return;
+  TQ = { set, order: shuffle(set.sentences.map((_, i) => i)), i: 0, right: 0,
+    sess: { id: Date.now() + "-" + Math.random().toString(36).slice(2,7), kind: "tap",
+      name: state.name.trim(), deck: set.label, total: set.sentences.length,
+      right: 0, answered: 0, finished: false, when: Date.now(), sentences: [] } };
+  saveTap();
+  $("setup").classList.add("hidden");
+  $("tquiz").classList.remove("hidden");
+  $("tplay").classList.remove("hidden"); $("tFinal").classList.add("hidden");
+  tRender(); window.scrollTo(0, 0);
+}
+function tRender(){
+  ttsStop();
+  const text = TQ.set.sentences[TQ.order[TQ.i]];
+  $("tProgressText").textContent = `${TQ.set.label} — Sentence ${TQ.i + 1} of ${TQ.order.length}`;
+  $("tProgressBar").style.width = `${(TQ.i / TQ.order.length) * 100}%`;
+  const box = $("tSentence"); box.innerHTML = ""; delete box.dataset.done;
+  text.split(/\s+/).forEach((word, k) => {
+    if(k) box.appendChild(document.createTextNode(" "));
+    const sp = document.createElement("span");
+    sp.className = "w"; sp.textContent = word;
+    box.appendChild(sp);
+  });
+  $("tVerdict").textContent = ""; $("tVerdict").className = "verdict";
+  $("tNextBtn").classList.add("hidden");
+}
+$("tSentence").addEventListener("click", e => {
+  if(!TQ || $("tSentence").dataset.done) return;
+  const sp = e.target.closest(".w"); if(!sp) return;
+  $("tSentence").dataset.done = "1";
+  const text = TQ.set.sentences[TQ.order[TQ.i]];
+  const answer = tapAnswerOf(text);
+  const right = nNorm(sp.textContent) === answer;
+  sp.classList.add(right ? "good" : "bad");
+  if(!right) [...$("tSentence").children].forEach(x => {
+    if(x.classList && nNorm(x.textContent || "") === answer) x.classList.add("good");
+  });
+  if(right){ TQ.right++; $("tVerdict").textContent = "Correct!"; $("tVerdict").classList.add("ok"); }
+  else { $("tVerdict").textContent = "Not quite. The right one is marked green."; $("tVerdict").classList.add("bad"); }
+  TQ.sess.right = TQ.right; TQ.sess.answered = TQ.i + 1;
+  TQ.sess.sentences.push({ n: TQ.order[TQ.i] + 1, text, right, picked: sp.textContent });
+  TQ.sess.finished = TQ.i + 1 >= TQ.order.length;
+  saveTap();
+  $("tNextBtn").textContent = TQ.i + 1 < TQ.order.length ? "Next sentence" : "See my score";
+  $("tNextBtn").classList.remove("hidden");
+});
+$("tNextBtn").onclick = () => {
+  if(TQ.i + 1 < TQ.order.length){ TQ.i++; tRender(); window.scrollTo(0, 0); }
+  else {
+    $("tplay").classList.add("hidden"); $("tFinal").classList.remove("hidden");
+    const pct = Math.round(TQ.right / TQ.order.length * 100);
+    $("tFinalScore").textContent = `${TQ.right} / ${TQ.order.length}`;
+    $("tFinalNote").textContent = pct === 100 ? "Perfect score. Incredible." : `That's ${pct}%. Wrong ones showed the answer as you went.`;
+    syncReconcile();
+  }
+};
+function tExit(){
+  ttsStop();
+  $("tquiz").classList.add("hidden"); $("setup").classList.remove("hidden");
+  TQ = null; buildQuick(); markQuickSelection();
+}
+$("tBackBtn").onclick = tExit;
+$("tFinalBack").onclick = tExit;
+$("tAgainBtn").onclick = () => { const s = TQ.set; startTapSet(s); };
+// ============ end tap-the-word quiz engine ============
+
 // wire up
 const NAME_PILLS = ["Luca", "The Mule", "Anon"];
 function syncNamePick(){
@@ -2615,6 +2842,7 @@ if(TTS){
   segment("ttsRate", v => { localStorage.setItem("ttsRate", v); });
   $("ttsTest").onclick = () => speak("This is how the reading voice sounds.", $("ttsTest"));
   $("nSpeak").onclick = () => speak(nList[nCur] ? nList[nCur].text : "", $("nSpeak"));
+  $("tSpeak").onclick = () => speak(TQ ? TQ.set.sentences[TQ.order[TQ.i]] : "", $("tSpeak"));
   $("promptSpeak").onclick = () => speak($("prompt").dataset.say || $("prompt").textContent, $("promptSpeak"));
   $("choicesSpeak").onclick = () => {
     const letters = "ABCDEFGH";
@@ -2624,7 +2852,7 @@ if(TTS){
   };
 } else {
   // no speech support: hide all speaker UI
-  ["nSpeak","promptSpeak","choicesSpeak","ttsTest","praySpeak"].forEach(id => $(id) && $(id).classList.add("hidden"));
+  ["nSpeak","promptSpeak","choicesSpeak","ttsTest","praySpeak","tSpeak","flipSpeak"].forEach(id => $(id) && $(id).classList.add("hidden"));
   const n = $("ttsNote"); if(n) n.textContent = "Read-aloud isn't available in this browser.";
 }
 function segFromSaved(id, v){ [...$(id).children].forEach(b => b.setAttribute("aria-pressed", b.dataset.v === String(v))); }
