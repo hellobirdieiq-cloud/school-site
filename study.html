@@ -10,7 +10,7 @@
     --ink:#eef1f8; --paper:#0f1626; --line:#2c3852; --soft:#1a2338;
     --go:#4fd68a; --go-bg:#153826; --no:#ff7b72; --no-bg:#3a1c1c; --mark:#ffd23f;
     --c-geo:#5aa9ff; --c-sci:#4fd68a; --c-rel:#c78bff; --c-other:#9aa6c2;
-    --c-eng:#ffb86b;
+    --c-eng:#ffb86b; --c-spa:#45d1c2;
   }
   *{box-sizing:border-box}
   html,body{margin:0;background:var(--paper);color:var(--ink);
@@ -490,6 +490,17 @@ const DECKS = {
     ["thrive","(v.) to grow vigorously; to grow in wealth and possessions Example: \"Angie hopes that her business will thrive in today's Internet culture.\""],
     ["titanic","(adj.) of enormous size, strength, power, or scope Example: \"The movie plot explores the titanic struggle between the forces of good and evil.\""],
     ["valiant","(adj.) possessing or acting with bravery or boldness Example: \"Sir Galahad was a valiant knight of King Arthur's Round Table.\""]
+  ],
+  "Numbers 1-9": [
+    ["uno","one (1)"],
+    ["dos","two (2)"],
+    ["tres","three (3)"],
+    ["cuatro","four (4)"],
+    ["cinco","five (5)"],
+    ["seis","six (6)"],
+    ["siete","seven (7)"],
+    ["ocho","eight (8)"],
+    ["nueve","nine (9)"]
   ]
 };
 // Class groupings for the start screen. Decks not listed here fall under
@@ -497,7 +508,8 @@ const DECKS = {
 const SUBJECTS = { "English": ["Parts of Speech", "Unit 12"],
                    "Geography": ["Geography 1"],
                    "Science": ["Science 1-1","Science 1-2","Science 1-3"],
-                   "Religion": ["Religion 1", "Religion Chapter 1 Prayer Quiz", "Steps to Sainthood", "Sainthood Process Quiz"] };
+                   "Religion": ["Religion 1", "Religion Chapter 1 Prayer Quiz", "Steps to Sainthood", "Sainthood Process Quiz"],
+                   "Spanish": ["Numbers 1-9"] };
 // English activities: five 20-sentence sets of the nouns quiz (nouns-data.json)
 const NOUN_SETS = [1, 2, 3, 4, 5].map(k =>
   ({ k, label: `Nouns Quiz ${k}`, from: (k - 1) * 20 + 1, to: k * 20,
@@ -506,7 +518,7 @@ const classOf = deck =>
   Object.keys(SUBJECTS).find(c => SUBJECTS[c].includes(deck)) || "Other";
 const CLASS_COLOR = { "Geography": "--c-geo", "Science": "--c-sci",
                       "Religion": "--c-rel", "Other": "--c-other",
-                      "English": "--c-eng" };
+                      "English": "--c-eng", "Spanish": "--c-spa" };
 function tagClass(el, cls){
   el.dataset.class = cls;
   el.style.setProperty("--cc", `var(${CLASS_COLOR[cls] || "--c-other"})`);
