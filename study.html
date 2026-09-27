@@ -543,6 +543,46 @@ const DECKS = {
     ["ochenta","eighty (80)"],
     ["noventa","ninety (90)"],
     ["cien","one hundred (100)"]
+  ],
+  "Days of the Week": [
+    ["lunes","Monday"],
+    ["martes","Tuesday"],
+    ["miércoles","Wednesday"],
+    ["jueves","Thursday"],
+    ["viernes","Friday"],
+    ["sábado","Saturday"],
+    ["domingo","Sunday"]
+  ],
+  "Classroom Words (P-6)": [
+    ["el libro","book"],
+    ["el bolígrafo","pen"],
+    ["el lápiz","pencil"],
+    ["el cuaderno","notebook"],
+    ["la carpeta","folder"],
+    ["la hoja de papel","sheet of paper"],
+    ["el pupitre","student desk"],
+    ["la sala de clases","classroom"],
+    ["el profesor","teacher (man)"],
+    ["la profesora","teacher (woman)"],
+    ["el / la estudiante","student"]
+  ],
+  "Body Words (P-5)": [
+    ["el cuerpo","body"],
+    ["la cabeza","head"],
+    ["el ojo","eye"],
+    ["la nariz","nose"],
+    ["la boca","mouth"],
+    ["el brazo","arm"],
+    ["la mano","hand (watch out, it's a girl word)"],
+    ["el dedo","finger"],
+    ["el estómago","stomach"],
+    ["la pierna","leg"],
+    ["el pie","foot"]
+  ],
+  "Phrases": [
+    ["Hay","there is / there are"],
+    ["No hay","there isn't / there aren't"],
+    ["Me duele...","my ___ hurts"]
   ]
 };
 // Class groupings for the start screen. Decks not listed here fall under
@@ -551,7 +591,8 @@ const SUBJECTS = { "English": ["Parts of Speech", "Unit 12"],
                    "Geography": ["Geography 1"],
                    "Science": ["Science 1-1","Science 1-2","Science 1-3"],
                    "Religion": ["Religion 1", "Religion Chapter 1 Prayer Quiz", "Steps to Sainthood", "Sainthood Process Quiz"],
-                   "Spanish": ["Numbers 1-9", "Numbers 10-19", "Numbers 20-29", "Numbers 30-100"] };
+                   "Spanish": ["Numbers 1-9", "Numbers 10-19", "Numbers 20-29", "Numbers 30-100",
+                               "Days of the Week", "Classroom Words (P-6)", "Body Words (P-5)", "Phrases"] };
 // English activities: five 20-sentence sets of the nouns quiz (nouns-data.json)
 const NOUN_SETS = [1, 2, 3, 4, 5].map(k =>
   ({ k, label: `Nouns Quiz ${k}`, from: (k - 1) * 20 + 1, to: k * 20,
