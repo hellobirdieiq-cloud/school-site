@@ -113,6 +113,10 @@
   .w.struckw{text-decoration:line-through solid var(--no)}
   .w.good{background:var(--go-bg);border-radius:8px;text-decoration:underline}
   .w.bad{background:var(--no-bg);border-radius:8px;text-decoration:line-through}
+  .qword{color:var(--mark);font-weight:800;text-decoration:underline;text-underline-offset:5px}
+  #tChoices button{font-size:19px;padding:12px 18px}
+  #tChoices button.right{background:var(--go-bg);border-color:var(--go)}
+  #tChoices button.wrong{background:var(--no-bg);border-color:var(--no)}
   .gradenote{font-size:16px;color:#9aa6c2;margin:0 0 10px;min-height:1em}
   .gradenote b{color:var(--no);font-weight:700}
   .u1{text-decoration:underline;text-underline-offset:3px}
@@ -274,11 +278,12 @@
   <div id="tplay">
     <div class="row"><span class="small" id="tProgressText"></span></div>
     <div class="bar"><div id="tProgressBar"></div></div>
-    <p class="small" style="margin:0 0 10px">Tap the indefinite pronoun in the sentence.</p>
+    <p class="small" id="tHint" style="margin:0 0 10px"></p>
     <div class="row" style="align-items:flex-start;gap:10px">
       <button class="spk" id="tSpeak" title="Read the sentence" aria-label="Read the sentence">🔊</button>
       <p class="nsentence" id="tSentence" style="flex:1;margin:0 0 14px"></p>
     </div>
+    <div class="row" id="tChoices" style="margin:0 0 8px"></div>
     <div class="verdict" id="tVerdict"></div>
     <p class="row">
       <button class="primary hidden" id="tNextBtn">Next sentence</button>
@@ -1317,6 +1322,119 @@ const PRONOUN_SETS = [
     "Nobody touched the wet paint."
   ]}
 ];
+// classify sets: the pronoun is marked with [brackets]; tap DEM / REL / INTER
+const CLASSIFY_SETS = [
+  { k:1, label:"DEM/REL/INTER Pronoun 1", type:"classify", sub:"DEM, REL, or INTER?", sentences:[
+    ["[This] is my new backpack.","DEM"],
+    ["[Who] ate the last cookie?","INTER"],
+    ["The girl [who] sits next to me is funny.","REL"],
+    ["[Those] are my grandma's flowers.","DEM"],
+    ["[What] is your favorite color?","INTER"],
+    ["The dog [that] lives next door barks a lot.","REL"],
+    ["[That] was a loud thunderstorm!","DEM"],
+    ["[Which] is your lunchbox?","INTER"],
+    ["I have a cat [that] likes to sleep all day.","REL"],
+    ["[These] are the best cookies ever.","DEM"],
+    ["The boy [who] won the race is my cousin.","REL"],
+    ["[Whose] is the red jacket?","INTER"],
+    ["Can I have one of [those]?","DEM"],
+    ["The book [which] I read was about sharks.","REL"],
+    ["[Who] is knocking on the door?","INTER"],
+    ["[This] tastes like strawberries.","DEM"],
+    ["My friend, [whose] dog is huge, lives on my street.","REL"],
+    ["[What] did you eat for breakfast?","INTER"],
+    ["[That] is the tallest tree in the park.","DEM"],
+    ["The teacher [who] helps us read is kind.","REL"]
+  ]},
+  { k:2, label:"DEM/REL/INTER Pronoun 2", type:"classify", sub:"DEM, REL, or INTER?", sentences:[
+    ["[What] is in the box?","INTER"],
+    ["[These] are my soccer cleats.","DEM"],
+    ["The pizza [that] Dad made was yummy.","REL"],
+    ["[Who] wants to play tag?","INTER"],
+    ["The man [who] drives our bus is nice.","REL"],
+    ["[That] is my baby brother.","DEM"],
+    ["[Which] of the puppies is yours?","INTER"],
+    ["I like the song [that] we sang in class.","REL"],
+    ["[Those] look like rain clouds.","DEM"],
+    ["[Whose] are the muddy boots?","INTER"],
+    ["The kids [who] finished early got a sticker.","REL"],
+    ["[This] is so much fun!","DEM"],
+    ["The park, [which] has a big slide, is near my house.","REL"],
+    ["[What] happened to your knee?","INTER"],
+    ["Please put [those] on the table.","DEM"],
+    ["The lady [whose] car is blue is my aunt.","REL"],
+    ["[Who] made a card for me?","INTER"],
+    ["[These] smell like fresh bread.","DEM"],
+    ["The movie [that] we watched was scary.","REL"],
+    ["[Which] do you like better, cats or dogs?","INTER"]
+  ]},
+  { k:3, label:"DEM/REL/INTER Pronoun 3", type:"classify", sub:"DEM, REL, or INTER?", sentences:[
+    ["[That] is my favorite game.","DEM"],
+    ["[Who] left the door open?","INTER"],
+    ["The bird [that] sings every morning is a robin.","REL"],
+    ["[This] is the best day ever!","DEM"],
+    ["[What] is under the couch?","INTER"],
+    ["[Those] are my brother's toys.","DEM"],
+    ["The kid [who] sits behind me is new.","REL"],
+    ["[Which] is the way to the gym?","INTER"],
+    ["[These] are too small for me.","DEM"],
+    ["The cake [that] Mom baked is chocolate.","REL"],
+    ["[Whose] is the red bike?","INTER"],
+    ["I want [that] for my birthday.","DEM"],
+    ["My uncle, [who] lives in Texas, has a horse.","REL"],
+    ["[Who] is your best friend?","INTER"],
+    ["[This] belongs to my sister.","DEM"],
+    ["The shirt [which] I wore today is green.","REL"],
+    ["[What] should we play at recess?","INTER"],
+    ["[Those] were the best tacos ever.","DEM"],
+    ["The girl [whose] hat blew away was sad.","REL"],
+    ["[Which] of the pencils is yours?","INTER"]
+  ]},
+  { k:4, label:"DEM/REL/INTER Pronoun 4", type:"classify", sub:"DEM, REL, or INTER?", sentences:[
+    ["The coach [who] runs our team is loud.","REL"],
+    ["[These] are my new sneakers.","DEM"],
+    ["[What] is your dog's name?","INTER"],
+    ["[That] looks like a dinosaur!","DEM"],
+    ["The pencil [that] I found is sharp.","REL"],
+    ["[Who] took my chair?","INTER"],
+    ["[This] is my classroom.","DEM"],
+    ["My mom, [who] is a nurse, works at night.","REL"],
+    ["[Those] are the keys to the car.","DEM"],
+    ["[Which] is the biggest planet?","INTER"],
+    ["The shoes [that] I wear to school are black.","REL"],
+    ["[This] is heavy!","DEM"],
+    ["[Whose] is the green water bottle?","INTER"],
+    ["The river, [which] is very long, goes to the ocean.","REL"],
+    ["[Those] belong to the teacher.","DEM"],
+    ["[Who] is coming to your party?","INTER"],
+    ["The boy [whose] kite got stuck was sad.","REL"],
+    ["[That] was a great joke!","DEM"],
+    ["[What] did the dog find?","INTER"],
+    ["The game [that] we played at recess was tag.","REL"]
+  ]},
+  { k:5, label:"DEM/REL/INTER Pronoun 5", type:"classify", sub:"DEM, REL, or INTER?", sentences:[
+    ["[Who] is your teacher this year?","INTER"],
+    ["[This] is my lucky penny.","DEM"],
+    ["The dog [that] chased the ball is fast.","REL"],
+    ["[What] are you drawing?","INTER"],
+    ["[Those] are my crayons.","DEM"],
+    ["The girl [who] sings in the choir is my sister.","REL"],
+    ["[Which] is your house?","INTER"],
+    ["[That] is the moon!","DEM"],
+    ["[These] are for the bake sale.","DEM"],
+    ["The toy [which] I wanted was sold out.","REL"],
+    ["[Whose] is the blue coat?","INTER"],
+    ["The friend [who] called me is Maya.","REL"],
+    ["[This] is where we eat lunch.","DEM"],
+    ["[What] is the capital of Texas?","INTER"],
+    ["My dad, [who] loves to cook, made tacos.","REL"],
+    ["[That] was the best field trip!","DEM"],
+    ["[Who] broke the vase?","INTER"],
+    ["The lake [that] we swim in is cold.","REL"],
+    ["[Those] are really tall buildings.","DEM"],
+    ["[Which] of the games do you want to play?","INTER"]
+  ]}
+];
 // ---------- END TAP QUIZ DATA ----------
 
 
@@ -1598,6 +1716,7 @@ function buildQuick(){
   (SUBJECTS["English"] || []).filter(name => DECKS[name]).forEach(name => engGrid.appendChild(makeDeckBtn(name)));
   FLIPCARDS.filter(f => f.section === "English").forEach(f => engGrid.appendChild(makeFlipBtn(f)));
   PRONOUN_SETS.forEach(set => engGrid.appendChild(makeTapBtn(set)));
+  CLASSIFY_SETS.forEach(set => engGrid.appendChild(makeTapBtn(set)));
   classGroups(Object.keys(DECKS), d => d).forEach(([cls, decks]) => {
     if(cls === "English") return;   // English decks already rendered next to the Nouns quizzes
     const grid = classSection(box, cls);
@@ -1689,7 +1808,7 @@ function renderResults(){
       const status = s.finished ? "finished" : `stopped after ${done} of ${s.total}`;
       const items = (s.sentences || []).map(x =>
         `<li class="${x.right?'ok':'bad'}"><span class="mk">${x.right?'✓':'✗'}</span><span>${x.text}${x.right?'':` <span class="pk">— tapped “${x.picked}”</span>`}</span></li>`).join("");
-      return `<div class="reswrap${s.hidden ? ' dim' : ''}" data-id="${s.id}"><button class="swipeact" type="button">${act}</button><details class="res"><summary><span><span class="sc">${s.right}/${done}</span> <span class="meta">${done - s.right} wrong</span><br><span class="meta">${s.name} · ${s.deck} · tap the pronoun · ${status}</span></span><span class="meta" style="text-align:right">${new Date(s.when).toLocaleString([], {dateStyle:"short", timeStyle:"short"})}</span><button class="hidebtn" type="button">${act}</button></summary><ul>${items}</ul></details></div>`;
+      return `<div class="reswrap${s.hidden ? ' dim' : ''}" data-id="${s.id}"><button class="swipeact" type="button">${act}</button><details class="res"><summary><span><span class="sc">${s.right}/${done}</span> <span class="meta">${done - s.right} wrong</span><br><span class="meta">${s.name} · ${s.deck} · ${s.quiz || "tap the pronoun"} · ${status}</span></span><span class="meta" style="text-align:right">${new Date(s.when).toLocaleString([], {dateStyle:"short", timeStyle:"short"})}</span><button class="hidebtn" type="button">${act}</button></summary><ul>${items}</ul></details></div>`;
     }
     if(s.kind === "nouns"){
       const act = s.hidden ? "Unhide" : "Hide";
@@ -2705,10 +2824,16 @@ function tapBadge(set){
 function makeTapBtn(set){
   const b = document.createElement("button");
   tagClass(b, "English");
-  b.dataset.tapset = set.k;
-  b.innerHTML = `${set.label}<small>tap the pronoun in the sentence</small>` + tapBadge(set);
+  b.dataset.tapset = set.label;
+  b.innerHTML = `${set.label}<small>${set.sub || "tap the pronoun in the sentence"}</small>` + tapBadge(set);
   b.onclick = () => startTapSet(set);
   return b;
+}
+// a set's sentences are plain strings (tap the word) or [text, answer]
+// pairs (classify the marked word); this returns [text, answerOrNull]
+function tItem(){
+  const s = TQ.set.sentences[TQ.order[TQ.i]];
+  return Array.isArray(s) ? s : [s, null];
 }
 function saveTap(){
   TQ.sess.up = Date.now();
@@ -2722,6 +2847,7 @@ function startTapSet(set){
   TQ = { set, order: shuffle(set.sentences.map((_, i) => i)), i: 0, right: 0,
     sess: { id: Date.now() + "-" + Math.random().toString(36).slice(2,7), kind: "tap",
       name: state.name.trim(), deck: set.label, total: set.sentences.length,
+      quiz: set.type === "classify" ? "name the pronoun type" : "tap the pronoun",
       right: 0, answered: 0, finished: false, when: Date.now(), sentences: [] } };
   saveTap();
   $("setup").classList.add("hidden");
@@ -2731,24 +2857,62 @@ function startTapSet(set){
 }
 function tRender(){
   ttsStop();
-  const text = TQ.set.sentences[TQ.order[TQ.i]];
+  const [text] = tItem();
+  const classify = TQ.set.type === "classify";
+  $("tHint").textContent = classify
+    ? "What kind of pronoun is the yellow word?"
+    : "Tap the indefinite pronoun in the sentence.";
   $("tProgressText").textContent = `${TQ.set.label} — Sentence ${TQ.i + 1} of ${TQ.order.length}`;
   $("tProgressBar").style.width = `${(TQ.i / TQ.order.length) * 100}%`;
   const box = $("tSentence"); box.innerHTML = ""; delete box.dataset.done;
-  text.split(/\s+/).forEach((word, k) => {
-    if(k) box.appendChild(document.createTextNode(" "));
-    const sp = document.createElement("span");
-    sp.className = "w"; sp.textContent = word;
-    box.appendChild(sp);
-  });
+  if(classify){
+    box.dataset.done = "1";   // words aren't tappable in classify mode
+    box.innerHTML = text.replace(/\[(.+?)\]/, '<span class="qword">$1</span>');
+  } else {
+    text.split(/\s+/).forEach((word, k) => {
+      if(k) box.appendChild(document.createTextNode(" "));
+      const sp = document.createElement("span");
+      sp.className = "w"; sp.textContent = word;
+      box.appendChild(sp);
+    });
+  }
+  const ch = $("tChoices"); ch.innerHTML = "";
+  if(classify){
+    [["DEM","points 👉"], ["REL","connects 🔗"], ["INTER","question ❓"]].forEach(([t, hint]) => {
+      const b = document.createElement("button");
+      b.dataset.t = t;
+      b.innerHTML = `${t}<small style="display:block;font-weight:400;color:#9aa6c2">${hint}</small>`;
+      b.onclick = () => tClassify(t, b);
+      ch.appendChild(b);
+    });
+  }
   $("tVerdict").textContent = ""; $("tVerdict").className = "verdict";
   $("tNextBtn").classList.add("hidden");
+}
+function tClassify(picked, btn){
+  if(!TQ || $("tChoices").dataset.done) return;
+  $("tChoices").dataset.done = "1";
+  const [text, answer] = tItem();
+  const right = picked === answer;
+  const btns = [...$("tChoices").children];
+  btns.forEach(b => b.disabled = true);
+  btn.classList.add(right ? "right" : "wrong");
+  if(!right) btns.find(b => b.dataset.t === answer).classList.add("right");
+  if(right){ TQ.right++; $("tVerdict").textContent = "Correct!"; $("tVerdict").classList.add("ok"); }
+  else { $("tVerdict").textContent = "Not quite. The right one is marked green."; $("tVerdict").classList.add("bad"); }
+  TQ.sess.right = TQ.right; TQ.sess.answered = TQ.i + 1;
+  TQ.sess.sentences.push({ n: TQ.order[TQ.i] + 1, text, right, picked });
+  TQ.sess.finished = TQ.i + 1 >= TQ.order.length;
+  saveTap();
+  delete $("tChoices").dataset.done;
+  $("tNextBtn").textContent = TQ.i + 1 < TQ.order.length ? "Next sentence" : "See my score";
+  $("tNextBtn").classList.remove("hidden");
 }
 $("tSentence").addEventListener("click", e => {
   if(!TQ || $("tSentence").dataset.done) return;
   const sp = e.target.closest(".w"); if(!sp) return;
   $("tSentence").dataset.done = "1";
-  const text = TQ.set.sentences[TQ.order[TQ.i]];
+  const [text] = tItem();
   const answer = tapAnswerOf(text);
   const right = nNorm(sp.textContent) === answer;
   sp.classList.add(right ? "good" : "bad");
@@ -2842,7 +3006,7 @@ if(TTS){
   segment("ttsRate", v => { localStorage.setItem("ttsRate", v); });
   $("ttsTest").onclick = () => speak("This is how the reading voice sounds.", $("ttsTest"));
   $("nSpeak").onclick = () => speak(nList[nCur] ? nList[nCur].text : "", $("nSpeak"));
-  $("tSpeak").onclick = () => speak(TQ ? TQ.set.sentences[TQ.order[TQ.i]] : "", $("tSpeak"));
+  $("tSpeak").onclick = () => speak(TQ ? tItem()[0].replace(/[\[\]]/g, "") : "", $("tSpeak"));
   $("promptSpeak").onclick = () => speak($("prompt").dataset.say || $("prompt").textContent, $("promptSpeak"));
   $("choicesSpeak").onclick = () => {
     const letters = "ABCDEFGH";
