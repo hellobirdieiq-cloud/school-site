@@ -114,14 +114,14 @@
   .w.good{background:var(--go-bg);border-radius:8px;text-decoration:underline}
   .w.bad{background:var(--no-bg);border-radius:8px;text-decoration:line-through}
   .qword{color:var(--mark);font-weight:800;text-decoration:underline;text-underline-offset:5px}
-  /* pronoun & antecedent selections: blue underline, orange circle (pre-Check) */
+  /* pronoun & antecedent selections: 1 underline (blue), 2 underlines (orange) */
   .w.selu{text-decoration:underline solid var(--c-geo);text-decoration-thickness:3px;text-underline-offset:6px}
-  .w.selc{border:3px solid var(--c-eng);border-radius:999px;padding:6px}
+  .w.selc{text-decoration:underline double var(--c-eng);text-underline-offset:6px}
   /* post-Check feedback: green = correct, red = the student's wrong pick */
   .w.oku{text-decoration:underline solid var(--go);text-decoration-thickness:3px;text-underline-offset:6px}
   .w.badu{text-decoration:underline solid var(--no);text-decoration-thickness:3px;text-underline-offset:6px}
-  .w.okc{border:3px solid var(--go);border-radius:999px;padding:6px}
-  .w.badc{border:3px solid var(--no);border-radius:999px;padding:6px}
+  .w.okc{text-decoration:underline double var(--go);text-underline-offset:6px}
+  .w.badc{text-decoration:underline double var(--no);text-underline-offset:6px}
   #tChoices button{font-size:19px;padding:12px 18px}
   #tChoices button.right{background:var(--go-bg);border-color:var(--go)}
   #tChoices button.wrong{background:var(--no-bg);border-color:var(--no)}
@@ -1447,7 +1447,7 @@ const CLASSIFY_SETS = [
 // pronoun & antecedent sets: [sentence, pronoun, antecedent]; the student
 // underlines the pronoun (blue) and circles the antecedent (orange), then Checks
 const PA_SETS = [
-  { k:1, label:"Pronouns & Antecedents 1", type:"pa", sub:"underline the pronoun, circle the antecedent", sentences:[
+  { k:1, label:"Pronouns & Antecedents 1", type:"pa", sub:"underline the pronoun · double underline the antecedent", sentences:[
     ["The girls enjoyed the boat once they were aboard.","they","girls"],
     ["Brian said he would come back tomorrow.","he","Brian"],
     ["The dog wagged its tail.","its","dog"],
@@ -1469,7 +1469,7 @@ const PA_SETS = [
     ["Anna brushed her hair.","her","Anna"],
     ["The frog hopped away when it saw the snake.","it","frog"]
   ]},
-  { k:2, label:"Pronouns & Antecedents 2", type:"pa", sub:"underline the pronoun, circle the antecedent", sentences:[
+  { k:2, label:"Pronouns & Antecedents 2", type:"pa", sub:"underline the pronoun · double underline the antecedent", sentences:[
     ["The children invited Sarah to play, and she said yes.","she","Sarah"],
     ["Dad washed the car because it was dirty.","it","car"],
     ["The twins wore their new shoes.","their","twins"],
@@ -1491,7 +1491,7 @@ const PA_SETS = [
     ["Zoe saw a rainbow and pointed at it.","it","rainbow"],
     ["The coach blew her whistle.","her","coach"]
   ]},
-  { k:3, label:"Pronouns & Antecedents 3", type:"pa", sub:"underline the pronoun, circle the antecedent", sentences:[
+  { k:3, label:"Pronouns & Antecedents 3", type:"pa", sub:"underline the pronoun · double underline the antecedent", sentences:[
     ["The kids built a fort, and it was huge.","it","fort"],
     ["Ella called Grandpa to wish him a happy birthday.","him","Grandpa"],
     ["The bees buzzed as they flew.","they","bees"],
@@ -1513,7 +1513,7 @@ const PA_SETS = [
     ["The balloon popped when it hit the tree.","it","balloon"],
     ["Grandma knitted a scarf and gave it to Lucy.","it","scarf"]
   ]},
-  { k:4, label:"Pronouns & Antecedents 4", type:"pa", sub:"underline the pronoun, circle the antecedent", sentences:[
+  { k:4, label:"Pronouns & Antecedents 4", type:"pa", sub:"underline the pronoun · double underline the antecedent", sentences:[
     ["Brian said he would invite the girls again.","he","Brian"],
     ["The dogs barked when they heard the mail truck.","they","dogs"],
     ["Sara lost her mitten.","her","Sara"],
@@ -1911,7 +1911,7 @@ function renderResults(){
       const items = (s.sentences || []).map(x => {
         if(x.pronoun !== undefined){
           const pu = `underlined “${x.underlined}” ${x.pronounRight ? "✓" : `✗ — pronoun: ${x.pronoun}`}`;
-          const ci = `circled “${x.circled}” ${x.antecedentRight ? "✓" : `✗ — antecedent: ${x.antecedent}`}`;
+          const ci = `double underlined “${x.circled}” ${x.antecedentRight ? "✓" : `✗ — antecedent: ${x.antecedent}`}`;
           return `<li class="${x.right?'ok':'bad'}"><span class="mk">${x.right?'✓':'✗'}</span><span>${x.text}<br><span class="pk">${pu} · ${ci}</span></span></li>`;
         }
         return `<li class="${x.right?'ok':'bad'}"><span class="mk">${x.right?'✓':'✗'}</span><span>${x.text}${x.right?'':` <span class="pk">— tapped “${x.picked}”</span>`}</span></li>`;
@@ -2996,9 +2996,8 @@ function tRender(){
   const [text] = tItem();
   const classify = TQ.set.type === "classify";
   const pa = TQ.set.type === "pa";
-  if(pa) $("tHint").innerHTML = "<b>Underline the pronoun. Circle the antecedent.</b><br>" +
-    "Tap once to underline. Tap twice to circle. Tap again to clear.<br>" +
-    "The antecedent is the noun the pronoun takes the place of.";
+  if(pa) $("tHint").innerHTML =
+    '<span class="u1">1 underline</span> = pronoun<br><span class="u2">2 underlines</span> = antecedent';
   else $("tHint").textContent = classify
     ? "What kind of pronoun is the yellow word?"
     : "Tap the indefinite pronoun in the sentence.";
