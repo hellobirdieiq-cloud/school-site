@@ -92,6 +92,8 @@
   details.subject[open] .clshead::before{content:"▾"}
   details.subject .quick{margin-top:8px}
   .subcount{font-size:14px;font-weight:400;color:#9aa6c2}
+  .subhead{font-size:14px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;
+    color:#9aa6c2;margin:12px 0 2px}
   select{font:inherit;color:var(--ink);background:var(--soft);border:2px solid var(--line);border-radius:12px;padding:12px 14px;max-width:320px}
   input[type=text]{font:inherit;color:var(--ink);background:var(--soft);border:2px solid var(--line);border-radius:12px;padding:12px 14px;width:100%;max-width:320px}
   table{border-collapse:collapse;width:100%;margin-top:8px}
@@ -888,8 +890,13 @@ function classSection(parent, cls, keyPrefix){
 }
 function labelSubjectCounts(root){
   root.querySelectorAll("details.subject").forEach(d => {
-    const n = d.querySelector(".quick").children.length;
-    d.querySelector(".subcount").textContent = `${n} ${n === 1 ? "quiz" : "quizzes"}`;
+    const btns = [...d.querySelectorAll(".quick button")];
+    const prayers = btns.filter(b => b.dataset.prayer).length;
+    const quizzes = btns.length - prayers;
+    const parts = [];
+    if(quizzes) parts.push(`${quizzes} ${quizzes === 1 ? "quiz" : "quizzes"}`);
+    if(prayers) parts.push(`${prayers} ${prayers === 1 ? "prayer" : "prayers"}`);
+    d.querySelector(".subcount").textContent = parts.join(" · ");
   });
 }
 function makeSavedBtn(name, t){
@@ -971,8 +978,19 @@ function buildQuick(){
     if(cls === "English") return;   // English decks already rendered next to the Nouns quizzes
     const grid = classSection(box, cls);
     decks.forEach(name => grid.appendChild(makeDeckBtn(name)));
-    if(cls === "Religion") PRAYERS.forEach(p => grid.appendChild(makePrayerBtn(p)));
     FLIPCARDS.filter(f => f.section === cls).forEach(f => grid.appendChild(makeFlipBtn(f)));
+    if(cls === "Religion" && PRAYERS.length){
+      // Religion splits in two: flashcards/quizzes up top, prayers below
+      const det = grid.parentElement;
+      const h1 = document.createElement("div"); h1.className = "subhead";
+      h1.textContent = "Flashcards & Quizzes";
+      det.insertBefore(h1, grid);
+      const h2 = document.createElement("div"); h2.className = "subhead";
+      h2.textContent = "Prayers";
+      const pgrid = document.createElement("div"); pgrid.className = "quick";
+      det.append(h2, pgrid);
+      PRAYERS.forEach(p => pgrid.appendChild(makePrayerBtn(p)));
+    }
   });
   labelSubjectCounts(box);
   syncQuickSaved();
