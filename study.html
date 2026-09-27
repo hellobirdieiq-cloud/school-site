@@ -970,10 +970,6 @@ function buildQuick(){
   NOUN_SETS.forEach(set => engGrid.appendChild(makeNounBtn(set)));
   // English DECKS (e.g. Parts of Speech) sit next to the Nouns quizzes
   (SUBJECTS["English"] || []).filter(name => DECKS[name]).forEach(name => engGrid.appendChild(makeDeckBtn(name)));
-  const hint = document.createElement("p");
-  hint.className = "small"; hint.style.margin = "22px 0 -6px";
-  hint.textContent = "Every word, 6 choices, see the meaning and pick the word.";
-  box.appendChild(hint);
   classGroups(Object.keys(DECKS), d => d).forEach(([cls, decks]) => {
     if(cls === "English") return;   // English decks already rendered next to the Nouns quizzes
     const grid = classSection(box, cls);
