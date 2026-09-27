@@ -546,6 +546,20 @@ const DECKS = {
     ["noventa","ninety (90)"],
     ["cien","one hundred (100)"]
   ],
+  "Months of the Year": [
+    ["enero","January"],
+    ["febrero","February"],
+    ["marzo","March"],
+    ["abril","April"],
+    ["mayo","May"],
+    ["junio","June"],
+    ["julio","July"],
+    ["agosto","August"],
+    ["septiembre","September"],
+    ["octubre","October"],
+    ["noviembre","November"],
+    ["diciembre","December"]
+  ],
   "Days of the Week": [
     ["lunes","Monday"],
     ["martes","Tuesday"],
@@ -594,7 +608,8 @@ const SUBJECTS = { "English": ["Parts of Speech", "Unit 12"],
                    "Science": ["Science 1-1","Science 1-2","Science 1-3"],
                    "Religion": ["Religion 1", "Religion Chapter 1 Prayer Quiz", "Steps to Sainthood", "Sainthood Process Quiz"],
                    "Spanish": ["Numbers 1-9", "Numbers 10-19", "Numbers 20-29", "Numbers 30-100",
-                               "Days of the Week", "Classroom Words (P-6)", "Body Words (P-5)", "Phrases"] };
+                               "Days of the Week", "Months of the Year",
+                               "Classroom Words (P-6)", "Body Words (P-5)", "Phrases"] };
 // English activities: five 20-sentence sets of the nouns quiz (nouns-data.json)
 const NOUN_SETS = [1, 2, 3, 4, 5].map(k =>
   ({ k, label: `Nouns Quiz ${k}`, from: (k - 1) * 20 + 1, to: k * 20,
