@@ -2844,10 +2844,36 @@ function saveTap(){
 }
 function startTapSet(set){
   if(!needName()) return;
-  TQ = { set, order: shuffle(set.sentences.map((_, i) => i)), i: 0, right: 0,
+  if(set.type === "classify"){ tChooseHints(set); return; }
+  beginTapRun(set, false);
+}
+// classify sets ask first: hints under the answers, or full words only
+function tChooseHints(set){
+  $("setup").classList.add("hidden");
+  $("tquiz").classList.remove("hidden");
+  $("tplay").classList.remove("hidden"); $("tFinal").classList.add("hidden");
+  $("tProgressText").textContent = set.label;
+  $("tProgressBar").style.width = "0%";
+  $("tHint").textContent = "";
+  const box = $("tSentence"); box.innerHTML = ""; box.dataset.done = "1";
+  box.textContent = "Do you want hints under the answers?";
+  const ch = $("tChoices"); ch.innerHTML = "";
+  [["Yes, show hints", true], ["No hints", false]].forEach(([t, v]) => {
+    const b = document.createElement("button");
+    b.textContent = t;
+    b.onclick = () => beginTapRun(set, v);
+    ch.appendChild(b);
+  });
+  $("tVerdict").textContent = ""; $("tVerdict").className = "verdict";
+  $("tNextBtn").classList.add("hidden");
+  window.scrollTo(0, 0);
+}
+function beginTapRun(set, hints){
+  TQ = { set, hints, order: shuffle(set.sentences.map((_, i) => i)), i: 0, right: 0,
     sess: { id: Date.now() + "-" + Math.random().toString(36).slice(2,7), kind: "tap",
       name: state.name.trim(), deck: set.label, total: set.sentences.length,
-      quiz: set.type === "classify" ? "name the pronoun type" : "tap the pronoun",
+      quiz: set.type === "classify"
+        ? `name the pronoun type · ${hints ? "hints" : "no hints"}` : "tap the pronoun",
       right: 0, answered: 0, finished: false, when: Date.now(), sentences: [] } };
   saveTap();
   $("setup").classList.add("hidden");
@@ -2878,10 +2904,14 @@ function tRender(){
   }
   const ch = $("tChoices"); ch.innerHTML = "";
   if(classify){
-    [["DEM","points 👉"], ["REL","connects 🔗"], ["INTER","question ❓"]].forEach(([t, hint]) => {
+    const opts = TQ.hints
+      ? [["DEM","points 👉"], ["REL","connects 🔗"], ["INTER","question ❓"]]
+      : [["DEM","Demonstrative"], ["REL","Relative"], ["INTER","Interrogative"]];
+    opts.forEach(([t, txt]) => {
       const b = document.createElement("button");
       b.dataset.t = t;
-      b.innerHTML = `${t}<small style="display:block;font-weight:400;color:#9aa6c2">${hint}</small>`;
+      if(TQ.hints) b.innerHTML = `${t}<small style="display:block;font-weight:400;color:#9aa6c2">${txt}</small>`;
+      else b.textContent = txt;
       b.onclick = () => tClassify(t, b);
       ch.appendChild(b);
     });
@@ -2945,7 +2975,7 @@ function tExit(){
 }
 $("tBackBtn").onclick = tExit;
 $("tFinalBack").onclick = tExit;
-$("tAgainBtn").onclick = () => { const s = TQ.set; startTapSet(s); };
+$("tAgainBtn").onclick = () => { const s = TQ.set, h = TQ.hints; beginTapRun(s, h); };
 // ============ end tap-the-word quiz engine ============
 
 // wire up
