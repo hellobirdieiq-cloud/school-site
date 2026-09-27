@@ -501,6 +501,40 @@ const DECKS = {
     ["siete","seven (7)"],
     ["ocho","eight (8)"],
     ["nueve","nine (9)"]
+  ],
+  "Numbers 10-19": [
+    ["diez","ten (10)"],
+    ["once","eleven (11)"],
+    ["doce","twelve (12)"],
+    ["trece","thirteen (13)"],
+    ["catorce","fourteen (14)"],
+    ["quince","fifteen (15)"],
+    ["dieciséis","sixteen (16)"],
+    ["diecisiete","seventeen (17)"],
+    ["dieciocho","eighteen (18)"],
+    ["diecinueve","nineteen (19)"]
+  ],
+  "Numbers 20-29": [
+    ["veinte","twenty (20)"],
+    ["veintiuno","twenty-one (21)"],
+    ["veintidós","twenty-two (22)"],
+    ["veintitrés","twenty-three (23)"],
+    ["veinticuatro","twenty-four (24)"],
+    ["veinticinco","twenty-five (25)"],
+    ["veintiséis","twenty-six (26)"],
+    ["veintisiete","twenty-seven (27)"],
+    ["veintiocho","twenty-eight (28)"],
+    ["veintinueve","twenty-nine (29)"]
+  ],
+  "Numbers 30-100": [
+    ["treinta","thirty (30)"],
+    ["cuarenta","forty (40)"],
+    ["cincuenta","fifty (50)"],
+    ["sesenta","sixty (60)"],
+    ["setenta","seventy (70)"],
+    ["ochenta","eighty (80)"],
+    ["noventa","ninety (90)"],
+    ["cien","one hundred (100)"]
   ]
 };
 // Class groupings for the start screen. Decks not listed here fall under
@@ -509,7 +543,7 @@ const SUBJECTS = { "English": ["Parts of Speech", "Unit 12"],
                    "Geography": ["Geography 1"],
                    "Science": ["Science 1-1","Science 1-2","Science 1-3"],
                    "Religion": ["Religion 1", "Religion Chapter 1 Prayer Quiz", "Steps to Sainthood", "Sainthood Process Quiz"],
-                   "Spanish": ["Numbers 1-9"] };
+                   "Spanish": ["Numbers 1-9", "Numbers 10-19", "Numbers 20-29", "Numbers 30-100"] };
 // English activities: five 20-sentence sets of the nouns quiz (nouns-data.json)
 const NOUN_SETS = [1, 2, 3, 4, 5].map(k =>
   ({ k, label: `Nouns Quiz ${k}`, from: (k - 1) * 20 + 1, to: k * 20,
@@ -1127,7 +1161,10 @@ function showQuestion(){
 }
 
 function normAns(s){
-  return s.toLowerCase().replace(/[()\-–—'’"“”.,:;!?]/g, " ").replace(/\s+/g, " ").trim();
+  // NFD + strip combining marks: typed answers match with or without accents
+  // (dieciseis counts for dieciséis)
+  return s.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+    .replace(/[()\-–—'’"“”.,:;!?]/g, " ").replace(/\s+/g, " ").trim();
 }
 function acceptableWords(word){
   // "Global Positioning System (GPS)" -> gps AND global positioning system both count
