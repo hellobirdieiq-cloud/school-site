@@ -422,11 +422,33 @@ const DECKS = {
     ["Preposition","A preposition is a word that shows the relationship between a noun or a pronoun and another word in the sentence."],
     ["Conjunction","A conjunction is a word that joins words or groups of words."],
     ["Interjection","An interjection is a word that expresses emotion and has no grammatical relation to the rest of the sentence."]
+  ],
+  "Unit 12": [
+    ["abduct","(v.) to kidnap, carry off by force Example: \"Some people with vivid imaginations fear that hostile aliens will come to Earth to abduct humans.\""],
+    ["ambiguous","(adj.) not clear; having two or more possible meanings Example: \"The purpose of a test is not to confuse students with ambiguous questions, but to determine whether they have learned the material.\""],
+    ["balk","(v.) to stop short and refuse to go on; to refuse abruptly; to prevent from happening; (n.) (in baseball) an illegal motion made by a pitcher Example: \"My horse balked when I urged it to go up the steep mountain slope.\" \"The opposing team scored an additional run because of the pitcher's balk.\""],
+    ["compact","(adj.) closely and firmly packed together; small; (v.) to squeeze together; (n.) an agreement between parties; a small case containing a mirror and face powder; a small car Example: \"Computers are much more compact now than they were a generation ago.\" \"Workers at the town dump were asked to compact the trash to save space.\""],
+    ["confer","(v.) to consult, talk over, exchange opinions; to present as a gift, favor, or honor Example: \"The committee will confer before taking any action on the proposed new contract.\""],
+    ["earmark","(v.) to set aside for a special purpose; to mark an animal's ear for identification; (n.) an identifying mark or feature Example: \"Let's earmark the money we received for the new building fund.\""],
+    ["frigid","(adj.) extremely cold; lacking in warmth or feeling Example: \"Antarctica has a very frigid climate.\""],
+    ["implement","(n.) an instrument, tool; (v.) to put into effect Example: \"The harrow is a farm implement that is used to pulverize and smooth soil.\" \"The highway patrol will implement the new speed limit as of July 1 of this year.\""],
+    ["incalculable","(adj.) too great to be counted; unpredictable, uncertain Example: \"Concerned scientists worry that global warming may cause incalculable damage to our environment.\""],
+    ["indisputable","(adj.) beyond question or argument, definitely true Example: \"With such indisputable evidence, Judge Lee must rule to drop all charges against my client.\""],
+    ["intensive","(adj.) thorough, deep; showing great effort; concentrated Example: \"It took intensive physical therapy for the injured athlete to regain her strength and speed.\""],
+    ["maneuver","(n.) a planned movement; a skillful plan; a scheme; (v.) to perform or carry out such a planned movement Example: \"The troops carried out a night maneuver as part of the training mission.\" \"It takes a steady hand to maneuver the high-speed power drill.\""],
+    ["sabotage","(n.) an action taken to destroy something or to prevent it from working properly; (v.) to take such destructive action Example: \"Foreign embassies worry about sabotage.\" \"Protesters decided to sabotage the factory.\""],
+    ["scant","(adj.) not enough; barely enough; marked by a small or insufficient amount Example: \"Somehow, we made the scant supply of food stretch for nearly a week.\""],
+    ["stealthy","(adj.) done in a way so as not to be seen or observed; sneaky, underhanded Example: \"The nervous robber took stealthy glances at the cash register.\""],
+    ["strapping","(adj.) tall, strong, and healthy Example: \"That strapping young man is a good wrestler.\""],
+    ["strident","(adj.) harsh, shrill; unpleasant sounding Example: \"Her strident laughter showed harsh ridicule.\""],
+    ["thrive","(v.) to grow vigorously; to grow in wealth and possessions Example: \"Angie hopes that her business will thrive in today's Internet culture.\""],
+    ["titanic","(adj.) of enormous size, strength, power, or scope Example: \"The movie plot explores the titanic struggle between the forces of good and evil.\""],
+    ["valiant","(adj.) possessing or acting with bravery or boldness Example: \"Sir Galahad was a valiant knight of King Arthur's Round Table.\""]
   ]
 };
 // Class groupings for the start screen. Decks not listed here fall under
 // "Other" so nothing disappears if a name is mistyped.
-const SUBJECTS = { "English": ["Parts of Speech"],
+const SUBJECTS = { "English": ["Parts of Speech", "Unit 12"],
                    "Geography": ["Geography 1"],
                    "Science": ["Science 1-1","Science 1-2","Science 1-3"],
                    "Religion": ["Religion 1", "Religion Chapter 1 Prayer Quiz"] };
@@ -931,7 +953,7 @@ function maskAnswer(text, term){
   const t = String(term || "").trim();
   if(!t) return text;
   const esc = t.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-  return String(text).replace(new RegExp("\\b" + esc + "(?:es|s)?\\b", "gi"), MASK_BLANK);
+  return String(text).replace(new RegExp("\\b" + esc + "(?:es|ed|ing|s|d)?\\b", "gi"), MASK_BLANK);
 }
 function shuffle(a){ for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];} return a; }
 
