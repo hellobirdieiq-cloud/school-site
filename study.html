@@ -84,6 +84,14 @@
   .sect{font-size:28px;font-weight:800;margin:36px 0 6px}
   .clshead{font-size:19px;font-weight:700;letter-spacing:.01em;margin:18px 0 8px;
     color:var(--cc,#9aa6c2)}
+  details.subject{margin:14px 0}
+  details.subject .clshead{margin:0;cursor:pointer;list-style:none;display:flex;
+    align-items:center;gap:10px;padding:8px 0}
+  details.subject .clshead::-webkit-details-marker{display:none}
+  details.subject .clshead::before{content:"▸";font-size:15px;flex:none}
+  details.subject[open] .clshead::before{content:"▾"}
+  details.subject .quick{margin-top:8px}
+  .subcount{font-size:14px;font-weight:400;color:#9aa6c2}
   select{font:inherit;color:var(--ink);background:var(--soft);border:2px solid var(--line);border-radius:12px;padding:12px 14px;max-width:320px}
   input[type=text]{font:inherit;color:var(--ink);background:var(--soft);border:2px solid var(--line);border-radius:12px;padding:12px 14px;width:100%;max-width:320px}
   table{border-collapse:collapse;width:100%;margin-top:8px}
@@ -785,7 +793,11 @@ function markQuickSelection(){
   const target = loadedTest !== null
     ? document.querySelector(`#quickSavedList button[data-test="${CSS.escape(loadedTest)}"]`)
     : document.querySelector(`#quickDecks button[data-deck="${CSS.escape(state.deck)}"]`);
-  if(target) target.setAttribute("aria-pressed", "true");
+  if(target){
+    target.setAttribute("aria-pressed", "true");
+    const det = target.closest("details.subject");   // show the selection
+    if(det) det.open = true;
+  }
 }
 let nameMode = null; // "new" or "rename"
 function openNameRow(mode, preset){
@@ -809,12 +821,35 @@ function commitName(){
   storeTests(t); loadedTest = name; closeNameRow(); refreshSavedList(); markQuickSelection();
   $("loadedNote").textContent = `Saved "${name}".`;
 }
-function classSection(parent, cls){
-  const h = document.createElement("h3"); h.className = "clshead"; h.textContent = cls;
-  tagClass(h, cls);
+// Collapsible subject sections: colored subject names up top, tap one to drop
+// down its quizzes. Which sections are open is remembered per device.
+const OPEN_KEY = "openSubjects";
+function openSubjects(){
+  try { return new Set(JSON.parse(localStorage.getItem(OPEN_KEY)) || []); }
+  catch(e){ return new Set(); }
+}
+function classSection(parent, cls, keyPrefix){
+  const key = (keyPrefix || "d") + ":" + cls;
+  const det = document.createElement("details"); det.className = "subject";
+  det.open = openSubjects().has(key);
+  const sum = document.createElement("summary"); sum.className = "clshead";
+  sum.innerHTML = `<span>${cls}</span><span class="subcount"></span>`;
+  tagClass(sum, cls); tagClass(det, cls);
   const grid = document.createElement("div"); grid.className = "quick";
-  parent.append(h, grid);
+  det.append(sum, grid);
+  parent.appendChild(det);
+  det.addEventListener("toggle", () => {
+    const s = openSubjects();
+    det.open ? s.add(key) : s.delete(key);
+    localStorage.setItem(OPEN_KEY, JSON.stringify([...s]));
+  });
   return grid;
+}
+function labelSubjectCounts(root){
+  root.querySelectorAll("details.subject").forEach(d => {
+    const n = d.querySelector(".quick").children.length;
+    d.querySelector(".subcount").textContent = `${n} ${n === 1 ? "quiz" : "quizzes"}`;
+  });
 }
 function makeSavedBtn(name, t){
   const b = document.createElement("button");
@@ -837,9 +872,10 @@ function syncQuickSaved(){
   $("quickSaved").classList.toggle("hidden", names.length === 0);
   const sb = $("quickSavedList"); sb.innerHTML = "";
   classGroups(names, n => tests[n].deck).forEach(([cls, group]) => {
-    const grid = classSection(sb, cls);
+    const grid = classSection(sb, cls, "s");
     group.forEach(name => grid.appendChild(makeSavedBtn(name, tests[name])));
   });
+  labelSubjectCounts(sb);
 }
 function makeDeckBtn(name){
   const b = document.createElement("button");
@@ -897,6 +933,7 @@ function buildQuick(){
     if(cls === "Religion") PRAYERS.forEach(p => grid.appendChild(makePrayerBtn(p)));
     FLIPCARDS.filter(f => f.section === cls).forEach(f => grid.appendChild(makeFlipBtn(f)));
   });
+  labelSubjectCounts(box);
   syncQuickSaved();
 }
 function needName(){
@@ -957,9 +994,7 @@ function renderResults(){
     if(s.kind === "prayer"){
       const act = s.hidden ? "Unhide" : "Hide";
       const rc = s.reciteCount ?? 0;
-      const rev = s.reviewStage === "learned" ? "Learned"
-        : (s.dueAt && Date.now() >= s.dueAt) ? "Due for review"
-        : s.reviewStage === "initial" ? "learning" : `review ${s.reviewStage}`;
+      const rev = s.reviewStage === "learned" ? "Learned" : "learning";
       const items = (s.groups || []).map((g, i) =>
         `<li class="${g.level === "recited" ? "ok" : ""}"><span class="mk">${g.level === "recited" ? "\u2713" : "\u2022"}</span><span>Group ${i+1}: ${g.level}${g.lastRecite ? ` \u00b7 self-check: ${g.lastRecite === "got" ? "got it" : "try again"}` : ""}</span></li>`).join("");
       const full = s.lastFullReciteAt ? `<br><span class="meta">last full recite: ${s.lastFullResult || "?"} \u00b7 ${new Date(s.lastFullReciteAt).toLocaleDateString()}</span>` : "";
@@ -1568,15 +1603,6 @@ function prayTok(group){
   return { lines, words, count: wi };
 }
 function prayGroupText(group){ return group.lines.join("\n"); }
-function startOfDay(ts){ const d = new Date(ts); d.setHours(0,0,0,0); return d.getTime(); }
-// add N calendar days using LOCAL date arithmetic (DST-safe: a local day may be
-// 23 or 25 hours), then normalize to local start-of-day.
-function dueInDays(n){
-  const d = new Date();
-  d.setHours(0,0,0,0);
-  d.setDate(d.getDate() + n);
-  return d.getTime();
-}
 function prayRecId(key, name){ return `prayer-${key}-${name}`; }
 function prayRecord(key, name){ return loadSessions().find(x => x.id === prayRecId(key, name)); }
 function prayNewRec(def, name, startLevel){
@@ -1602,7 +1628,6 @@ function prayBadge(def){
   const rec = prayRecord(def.key, state.name.trim());
   if(!rec) return "";
   if(rec.reviewStage === "learned") return '<span class="nbadge nb-g">Learned</span>';
-  if(rec.dueAt && Date.now() >= rec.dueAt) return '<span class="nbadge nb-y">Due today</span>';
   const rc = rec.groups.filter(g => g.level === "recited").length;
   return `<span class="nbadge">${rc} / ${rec.total}</span>`;
 }
@@ -1657,9 +1682,7 @@ function allRecited(){ return PR.rec.groups.every(g => g.level === "recited"); }
 function prayEntry(){
   const rec = PR.rec;
   const learned = rec.reviewStage === "learned";
-  const due = rec.dueAt != null && Date.now() >= rec.dueAt;
-  if(due && rec.lastFullReciteAt && !learned && allRecited()){ startWhole(); return; }
-  if(allRecited() && rec.reviewStage === "initial"){ startWhole(); return; }
+  if(!learned && allRecited()){ startWhole(); return; }
   const gi = rec.groups.findIndex(g => g.level !== "recited");
   if(gi < 0){ prayDone(learned ? "This prayer is Learned. Nice work!" : "Nothing to practice right now."); return; }
   teachGroup(gi);
@@ -1849,14 +1872,12 @@ function startWhole(){
   $("prayBtns").append(got, missed, exit);
 }
 function passFull(){
-  const prev = PR.rec.reviewStage;
-  const nextS = { initial: "1d", "1d": "3d", "3d": "7d", "7d": "learned" }[prev] || "1d";
-  const off = { initial: 1, "1d": 3, "3d": 7 }[prev];
-  PR.rec.reviewStage = nextS;
-  PR.rec.dueAt = nextS === "learned" ? null : dueInDays(off);
+  // no review schedule: reciting the whole prayer once means it's Learned
+  PR.rec.reviewStage = "learned";
+  PR.rec.dueAt = null;
   PR.rec.lastFullReciteAt = Date.now(); PR.rec.lastFullResult = "pass";
   praySave(); syncReconcile();
-  prayDone(nextS === "learned" ? "You LEARNED this prayer! Amazing." : "Great job reciting the whole prayer!");
+  prayDone("You LEARNED this prayer! Amazing.");
 }
 function missedFull(){
   PR.rec.lastFullResult = "missed";
