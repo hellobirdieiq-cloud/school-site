@@ -710,6 +710,16 @@ const PRAYERS = [
 
 // ---------- FLIP CARDS (say it, then flip — no grading/results/sync) ----------
 const FLIPCARDS = [
+  // paged flip cards: one big card at a time — say it out loud, tap to flip.
+  // each card is [front, back, example words]
+  { section:"English", title:"Pronouns — Learn", cards:[
+    ["What is a pronoun?","A word that takes the place of a noun.","he, she, it, they, him, her"],
+    ["What is an indefinite pronoun?","NOT SPECIFIC","someone, anyone, nobody, something"],
+    ["Demonstrative (DEM)","POINTS 👉","this, that, these, those"],
+    ["Interrogative (INTER)","QUESTION ❓","who, whom, whose, which, what"],
+    ["Relative (REL)","CONNECTS 🔗","who, whom, whose, which, that"],
+    ["What is an antecedent?","The noun the pronoun refers to.",""]
+  ]},
   { section:"Science", title:"Attitudes of a Scientist — Silly Sentence", lines:[
     "Chunky — Curiosity",
     "Giraffes — Good Ethics",
@@ -998,6 +1008,7 @@ function buildQuick(){
   NOUN_SETS.forEach(set => engGrid.appendChild(makeNounBtn(set)));
   // English DECKS (e.g. Parts of Speech) sit next to the Nouns quizzes
   (SUBJECTS["English"] || []).filter(name => DECKS[name]).forEach(name => engGrid.appendChild(makeDeckBtn(name)));
+  FLIPCARDS.filter(f => f.section === "English").forEach(f => engGrid.appendChild(makeFlipBtn(f)));
   classGroups(Object.keys(DECKS), d => d).forEach(([cls, decks]) => {
     if(cls === "English") return;   // English decks already rendered next to the Nouns quizzes
     const grid = classSection(box, cls);
@@ -2002,7 +2013,32 @@ function flipExit(){
   $("flip").classList.add("hidden"); $("setup").classList.remove("hidden");
   FC = null; buildQuick(); markQuickSelection();
 }
-function startFlipCard(def){ FC = def; flipShow(); flipTitleView(); }
+function startFlipCard(def){ FC = def; flipShow(); def.cards ? flipPage(0, false) : flipTitleView(); }
+// paged mode: one big card at a time. Front -> say it out loud -> Flip -> back
+// (+ example words) -> Next. No grading or results, same as the row flip cards.
+function flipPage(i, flipped){
+  FC.i = i;
+  const [front, back, ex] = FC.cards[i];
+  $("flipTitle").textContent = `${FC.title} — ${i + 1} of ${FC.cards.length}`;
+  $("flipSpeak").dataset.say = flipped ? (ex ? `${back}. ${ex}` : back) : front;
+  $("flipBody").innerHTML = flipped
+    ? `<div class="praygroup" style="font-size:26px"><b>${back}</b>${ex ? `<span class="ex" style="font-size:.72em">${ex}</span>` : ""}</div>`
+    : `<div class="praygroup" style="font-size:26px">${front}</div>`;
+  $("flipBtns").innerHTML = "";
+  const main = document.createElement("button"); main.className = "primary";
+  const exit = document.createElement("button"); exit.textContent = "Exit"; exit.onclick = flipExit;
+  if(!flipped){
+    main.textContent = "Flip";
+    main.onclick = () => flipPage(i, true);
+  } else if(i + 1 < FC.cards.length){
+    main.textContent = "Next";
+    main.onclick = () => flipPage(i + 1, false);
+  } else {
+    main.textContent = "Start over";
+    main.onclick = () => flipPage(0, false);
+  }
+  $("flipBtns").append(main, exit);
+}
 function flipTitleView(){
   $("flipTitle").textContent = FC.title;
   $("flipSpeak").dataset.say = FC.title;   // speaker reads the title
