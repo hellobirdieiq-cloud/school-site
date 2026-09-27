@@ -413,6 +413,52 @@ const DECKS = {
     ["To help us focus our minds and hearts on God","Why do we fold our hands when we pray?"],
     ["The Lord’s Prayer","Which prayer did Jesus teach us to pray while he was on the side of a mountain?"]
   ],
+  "Steps to Sainthood": [
+    ["Saint","Anyone who dwells in heaven with God."],
+    ["Investigation","The examination of a person's life and holiness."],
+    ["Heroic Virtue","Exceptional practice of Christian virtue."],
+    ["Canonization","The process by which a holy person becomes a saint in the Catholic Church."],
+    ["Beatification","The process in which a holy person is named Blessed."],
+    ["Intercession","A prayer on behalf of others."],
+    ["Virtue","A habit that leads to holiness; a moral excellence."],
+    ["Role Model","An example of Catholic virtue."],
+    ["Miracle","A wondrous event considered an act of God, directly or through the intercession of a saint."],
+    ["Posthumous","Happening after a person's death."],
+    ["Postulator","A person who examines the candidate's virtues, writings, teachings, and acts and presents the findings."],
+    ["Martyr","A person who dies rather than speak against his or her beliefs."],
+    ["Stigmata","Marks that resemble the wounds of Christ."],
+    ["Relic","A surviving artifact or remain of a deceased holy person."],
+    ["Incorruptible","A body that shows no signs of decay after burial."],
+    ["Bilocation","The miracle that allows a holy person to be in two places at one moment in time."],
+    ["Odor of Sanctity","A sweet flower or rose smell associated with a holy person or relic."],
+    ["1st Class Relic","Part of a saint's body, such as bone or hair."],
+    ["2nd Class Relic","Something the saint owned or used, such as clothing or a personal item."],
+    ["3rd Class Relic","Something that touched a 1st- or 2nd-class relic."]
+  ],
+  "Sainthood Process Quiz": [
+    ["Servant of God","What is a person called during Stage 1: Investigation — the 1st title on the way to sainthood?"],
+    ["Venerable","What is a person called when the Pope recognizes heroic virtue — the title right after Servant of God?"],
+    ["Blessed","What is a person called at beatification — the title right after Venerable?"],
+    ["Saint","What is a person called at canonization — the last title, after Blessed?"],
+    ["Investigation","Which stage comes 1st, when the case goes to the Church?"],
+    ["Heroic Virtue","Which stage comes 2nd, when the person's virtues are reviewed?"],
+    ["Beatification","Which stage comes 3rd, when the 1st posthumous miracle is usually required?"],
+    ["Canonization","Which stage comes 4th and last, when a 2nd miracle is usually required?"],
+    ["The bishop","Who do people ask to investigate the person's life?"],
+    ["5 years","After how many years may the bishop allow the investigation to start?"],
+    ["The Congregation for the Causes of Saints (C.C.S.)","Who is the information from the investigation shared with?"],
+    ["A postulator","Who examines the candidate's virtues, writings, teachings, and acts and presents the case?"],
+    ["The Pope","If the investigation shows heroic virtue, who does the C.C.S. recommend the person to?"],
+    ["A role model of Catholic virtue","What is a Venerable?"],
+    ["Intercede (pray) for them","What may people ask a Venerable to do?"],
+    ["The 1st posthumous miracle","What unexplainable event usually leads to beatification?"],
+    ["A 2nd miracle","What is usually required for canonization?"],
+    ["A martyr","Who does not need the first miracle for beatification?"],
+    ["A feast day","What is a Blessed person given?"],
+    ["A date for canonization","What is set after a second miracle?"],
+    ["Churches","What can be named after a saint once the person is canonized?"],
+    ["The Blessed Virgin Mary under the title of the Immaculate Conception","Who is the Patroness of the United States?"]
+  ],
   "Parts of Speech": [
     ["Noun","A noun is a word or word group that is used to name a person, place, thing, or idea."],
     ["Pronoun","A pronoun is a word that is used in place of one or more nouns or pronouns."],
@@ -451,7 +497,7 @@ const DECKS = {
 const SUBJECTS = { "English": ["Parts of Speech", "Unit 12"],
                    "Geography": ["Geography 1"],
                    "Science": ["Science 1-1","Science 1-2","Science 1-3"],
-                   "Religion": ["Religion 1", "Religion Chapter 1 Prayer Quiz"] };
+                   "Religion": ["Religion 1", "Religion Chapter 1 Prayer Quiz", "Steps to Sainthood", "Sainthood Process Quiz"] };
 // English activities: five 20-sentence sets of the nouns quiz (nouns-data.json)
 const NOUN_SETS = [1, 2, 3, 4, 5].map(k =>
   ({ k, label: `Nouns Quiz ${k}`, from: (k - 1) * 20 + 1, to: k * 20,
