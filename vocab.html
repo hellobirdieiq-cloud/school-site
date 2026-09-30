@@ -56,6 +56,10 @@
   .tag.flag{background:var(--no-bg);color:var(--no);border:1px solid var(--no)}
   .defprompt{font-size:30px !important;font-weight:700;line-height:1.45}
   .lline{font-size:20px;line-height:1.6;margin:0 0 6px}
+  .upw{margin:0 6px 6px 0;padding:10px 14px;border-color:var(--line)}
+  .upw[aria-pressed="true"]{background:var(--go-bg);border-color:var(--go)}
+  .upx{min-width:44px;min-height:44px;float:right;border-color:var(--no);color:var(--no)}
+  .upall{font-size:14px;padding:6px 12px;margin-left:8px;vertical-align:middle}
   input[type=text]{font:inherit;color:var(--ink);background:var(--soft);border:2px solid var(--line);
     border-radius:12px;padding:12px 14px;width:100%;max-width:320px}
   .seg button[aria-pressed="true"]{background:var(--mark);color:#0f1626;border-color:var(--mark)}
@@ -81,12 +85,14 @@
     <p class="row">
       <button class="primary" id="startBtn">Start today's session</button>
       <button id="chapterBtn">Study a chapter</button>
+      <button id="upBtn">Up next</button>
       <button id="wordsBtn">Words</button>
     </p>
     <h2>New words per day</h2>
-    <div class="row seg" id="newPick">
-      <button data-v="3">3</button>
-      <button data-v="5">5</button>
+    <div class="row" id="newStep">
+      <button id="newMinus" style="min-width:60px;min-height:52px;font-size:26px">−</button>
+      <span id="newNum" style="font-size:28px;font-weight:800;min-width:44px;text-align:center"></span>
+      <button id="newPlus" style="min-width:60px;min-height:52px;font-size:26px">+</button>
     </div>
   </div>
 </section>
@@ -145,7 +151,19 @@
 <section id="brake" class="hidden">
   <h1>Nice work!</h1>
   <p class="note">Review took 10+ min — no new words today</p>
-  <p class="row"><button class="primary" id="brakeGo">See today's score</button></p>
+  <p class="row">
+    <button class="primary" id="brakeGo">See today's score</button>
+    <button id="brakeLearn">Learn anyway</button>
+  </p>
+</section>
+
+<section id="upnext" class="hidden">
+  <h1>Up next</h1>
+  <p class="small">Pick which words get learned next. The top of the list goes first; if it runs out, words come in book order.</p>
+  <p class="row"><button id="upBack">Back</button><button id="upClear">Clear all</button></p>
+  <div id="upQueue" style="margin:12px 0"></div>
+  <h2>Add words</h2>
+  <div id="upPicker"></div>
 </section>
 
 <section id="done" class="hidden">
@@ -512,7 +530,7 @@ function stateRecord(){
   }
   return { id: "vocab_state:" + deviceId, kind: "vocab_state", name: kidName(),
     when: Date.now(), up: Date.now(), w,
-    locked: SC.locked, streak: SC.streak, lastDaily: SC.lastDaily, best: chBest() };
+    locked: SC.locked, streak: SC.streak, lastDaily: SC.lastDaily, best: chBest(), upnext: UP };
 }
 function pushState(){ if(kidName()) syncPush(stateRecord()); }
 // restore from a synced vocab_state record when local state is empty
@@ -536,6 +554,7 @@ async function maybeRestore(){
     if(recs[0].lastDaily) SC.lastDaily = recs[0].lastDaily;
     scSave();
     if(recs[0].best) jset(KCB, recs[0].best);
+    if(Array.isArray(recs[0].upnext)){ UP = recs[0].upnext.filter(w => byWord[w]); upPrune(); }
     homeView();
   } catch(e){}
 }
@@ -589,7 +608,14 @@ function dueWords(){
     .map(v => v.w);
 }
 function newCandidates(){ return VOCAB.filter(v => !W[v.w] || !W[v.w].intro).map(v => v.w); }
-function effNewPerDay(){ return S.autoDrop ? 3 : S.newPerDay; }
+// auto-drop lowers to 3 but never raises a parent's smaller choice; 0 stays 0
+function effNewPerDay(){ return S.autoDrop ? Math.min(3, S.newPerDay) : S.newPerDay; }
+// "Up next" hand-picked queue (front of the line for new words)
+const KU = "vocab_upnext";
+let UP = jget(KU, []);
+const upSave = () => jset(KU, UP);
+const upPrune = () => { UP = UP.filter(w => byWord[w] && !(W[w] && W[w].intro)); upSave(); };
+upPrune();
 function flagged(w){ const h = wordState(w).h; return h.filter(r => r === "missed").length >= 2 && h.length >= 2; }
 
 // record one answered check: updates stage/due/counters/mastery, logs attempt
@@ -652,7 +678,7 @@ document.addEventListener("keydown", () => { if(SES) SES.lastAct = Date.now(); }
 
 const BRAKE_MS = 10 * 60 * 1000;
 function show(id){
-  ["home","sess","brake","done","words","chpick","chdone"].forEach(s => $(s).classList.toggle("hidden", s !== id));
+  ["home","sess","brake","done","words","chpick","chdone","upnext"].forEach(s => $(s).classList.toggle("hidden", s !== id));
 }
 function curWord(){ return SES.queue[SES.i]; }
 function nextCard(){
@@ -677,6 +703,17 @@ function nextCard(){
   }
   const w = curWord(), v = byWord[w];
   s.teaching = false;
+  if(s.phase === "learn"){
+    // introduction happens HERE, card by card
+    const st = wordState(w);
+    if(!st.intro){
+      st.intro = true; jset(KW, W);
+      UP = UP.filter(x => x !== w); upSave();
+      if(SC.todayDay !== todayKey()){ SC.todayDay = todayKey(); SC.todayNew = 0; }
+      SC.todayNew++; scSave();
+      s.counts.learned++;
+    }
+  }
   $("phaseLbl").textContent = { review: "Review", requeue: "Review again", learn: "New word", recall: "Do you remember?", retry: "One more try" }[s.phase];
   $("progLbl").textContent = `${s.i + 1} of ${s.queue.length}`;
   $("progBar").style.width = `${(s.i / s.queue.length) * 100}%`;
@@ -724,32 +761,36 @@ function answer(result){
 }
 function afterReview(){
   const s = SES;
-  evalBrakeDay(s.reviewMs >= BRAKE_MS);
   if(s.reviewMs >= BRAKE_MS){
     s.brake = true;
-    show("brake");
+    show("brake");     // streak day is decided by which brake button gets tapped
     return;
   }
+  evalBrakeDay("ok");
   startLearn();
 }
 function startLearn(){
   const s = SES;
-  s.newWords = newCandidates().slice(0, effNewPerDay());
-  s.counts.learned = s.newWords.length;
-  s.newWords.forEach(w => { const v = wordState(w); v.intro = true; });
-  jset(KW, W);
-  if(SC.todayDay !== todayKey()){ SC.todayDay = todayKey(); SC.todayNew = 0; }
-  SC.todayNew += s.newWords.length; scSave();
+  const n = effNewPerDay();
+  upPrune();
+  // Up next first (in queue order), then book order, skipping queued words.
+  // intro is NOT set here — each word is introduced only when its learn card
+  // is actually shown, so a stopped session leaves unseen words un-introduced.
+  const fromQueue = UP.slice(0, n);
+  const fill = newCandidates().filter(w => !UP.includes(w)).slice(0, Math.max(0, n - fromQueue.length));
+  s.newWords = [...fromQueue, ...fill];
   if(!s.newWords.length) return finishSession(true);
   s.phase = "learn"; s.queue = [...s.newWords]; s.i = 0;
   nextCard();
 }
-// brake streaks, evaluated once per day
-function evalBrakeDay(fired){
+// brake streaks, evaluated once per day. mode: "brake" | "ok" | "override".
+// An overridden day ("Learn anyway") is logged on the session record but
+// counts toward NEITHER streak.
+function evalBrakeDay(mode){
   if(S.lastEval === todayKey()) return;
   S.lastEval = todayKey();
-  if(fired){ S.brakeStreak++; S.okStreak = 0; }
-  else { S.okStreak++; S.brakeStreak = 0; }
+  if(mode === "brake"){ S.brakeStreak++; S.okStreak = 0; }
+  else if(mode === "ok"){ S.okStreak++; S.brakeStreak = 0; }
   if(S.brakeStreak >= 3) S.autoDrop = true;
   if(S.autoDrop && S.okStreak >= 3) S.autoDrop = false;
   jset(KS, S);
@@ -763,7 +804,7 @@ function finishSession(finished){
     total: s.answers.length, right: s.counts.got,
     reviewed: s.counts.reviewed, learned: s.counts.learned,
     got: s.counts.got, close: s.counts.close, missed: s.counts.missed,
-    durationSecs: secs, brake: s.brake, answers: s.answers };
+    durationSecs: secs, brake: s.brake, ...(s.override ? { override: true } : {}), answers: s.answers };
   if(finished) bumpStreak();
   if(kidName()){ syncPush(rec); pushState(); }
   $("doneScore").textContent = `${s.counts.got + s.counts.close} / ${s.counts.got + s.counts.close + s.counts.missed}`;
@@ -896,14 +937,61 @@ function homeView(){
   const todayN = SC.todayDay === todayKey() ? SC.todayNew : 0;
   const goal = effNewPerDay();
   const streak = streakShown();
+  upPrune();
   $("scoreLines").innerHTML =
-    `Today: ${todayN} of ${goal} new words${todayN >= goal ? " ✓" : ""}<br>` +
+    `Today: ${todayN} of ${goal} new words${todayN >= goal && goal > 0 ? " ✓" : ""}<br>` +
+    `Up next: ${UP.length} word${UP.length === 1 ? "" : "s"}<br>` +
     `Streak: ${streak} day${streak === 1 ? "" : "s"}<br>` +
     `Words locked in: ${SC.locked.length}`;
   $("autoNote").classList.toggle("hidden", !S.autoDrop);
   $("autoNote").textContent = "Review has been running long — new words are set to 3 a day for now. Back to normal after 3 quick review days.";
-  [...$("newPick").children].forEach(b => b.setAttribute("aria-pressed", +b.dataset.v === S.newPerDay));
+  $("newNum").textContent = S.newPerDay;
 }
+// ---------------- Up next screen ----------------------------------------------
+function upView(){
+  show("upnext");
+  upPrune();
+  const q = $("upQueue");
+  q.innerHTML = UP.length ? "" : '<p class="small">Nothing queued — new words come in book order.</p>';
+  UP.forEach((w, i) => {
+    const div = document.createElement("div"); div.className = "wrow";
+    div.innerHTML = `<button class="upx" data-w="${w}">×</button><b>${i + 1}. ${w}</b><br><span class="meta">${byWord[w].d}</span>`;
+    q.appendChild(div);
+  });
+  const p = $("upPicker"); p.innerHTML = "";
+  for(const ch of CHAPTERS){
+    const words = VOCAB.filter(v => v.ch === ch && !(W[v.w] && W[v.w].intro));
+    if(!words.length) continue;
+    const h = document.createElement("h2");
+    h.innerHTML = `${ch} <button class="upall" data-ch="${ch}">Add whole chapter</button>`;
+    p.appendChild(h);
+    const grid = document.createElement("div"); grid.className = "row";
+    words.forEach(v => {
+      const b = document.createElement("button");
+      b.className = "upw"; b.dataset.w = v.w;
+      b.textContent = UP.includes(v.w) ? `${v.w} ✓` : v.w;
+      if(UP.includes(v.w)) b.setAttribute("aria-pressed", "true");
+      grid.appendChild(b);
+    });
+    p.appendChild(grid);
+  }
+}
+document.addEventListener("click", e => {
+  const x = e.target.closest(".upx");
+  if(x){ UP = UP.filter(w => w !== x.dataset.w); upSave(); pushState(); upView(); return; }
+  const all = e.target.closest(".upall");
+  if(all){
+    VOCAB.filter(v => v.ch === all.dataset.ch && !(W[v.w] && W[v.w].intro) && !UP.includes(v.w))
+      .forEach(v => UP.push(v.w));
+    upSave(); pushState(); upView(); return;
+  }
+  const b = e.target.closest(".upw");
+  if(b){
+    const w = b.dataset.w;
+    UP.includes(w) ? UP = UP.filter(x2 => x2 !== w) : UP.push(w);
+    upSave(); pushState(); upView();
+  }
+});
 // List view: same word data rendered as a numbered study list (no stage/badges)
 function wordsList(){
   const box = $("wordList"); box.innerHTML = "";
@@ -963,10 +1051,18 @@ $("viewPick").addEventListener("click", e => {
   wordsView();
 });
 $("wordsBack").onclick = () => { show("home"); homeView(); };
-$("newPick").addEventListener("click", e => {
-  const b = e.target.closest("button"); if(!b) return;
-  S.newPerDay = +b.dataset.v; jset(KS, S); homeView();
-});
+$("newMinus").onclick = () => { S.newPerDay = Math.max(0, S.newPerDay - 1); jset(KS, S); homeView(); };
+$("newPlus").onclick = () => { S.newPerDay = Math.min(15, S.newPerDay + 1); jset(KS, S); homeView(); };
+$("upBtn").onclick = upView;
+$("upBack").onclick = () => { show("home"); homeView(); };
+$("upClear").onclick = () => { UP = []; upSave(); pushState(); upView(); };
+$("brakeLearn").onclick = () => {
+  if(!SES) return;
+  SES.override = true;
+  evalBrakeDay("override");
+  show("sess");
+  startLearn();
+};
 // mode dispatch: chapter run when CH is set, daily session otherwise. CH is
 // cleared on every exit (done, stop, home) and is in-memory only, so a reload
 // always lands back in daily mode.
@@ -995,7 +1091,7 @@ $("dirWM").onclick = () => { const ch = $("chpick").dataset.ch; if(ch) startChap
 $("dirMW").onclick = () => { const ch = $("chpick").dataset.ch; if(ch) startChapterRun(ch, "mw", VOCAB.filter(v => v.ch === ch).map(v => v.w)); };
 $("chRetryBtn").onclick = () => { if(chLast && chLast.missed.length) startChapterRun(chLast.ch, chLast.dir, chLast.missed, true); };
 $("chDoneHome").onclick = () => { CH = null; show("home"); homeView(); };
-$("brakeGo").onclick = () => { finishSession(true); };
+$("brakeGo").onclick = () => { evalBrakeDay("brake"); finishSession(true); };
 $("doneHome").onclick = () => { show("home"); homeView(); };
 
 homeView();
