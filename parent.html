@@ -83,6 +83,12 @@ function detailHtml(r){
       <span class="mk">${x.n} ${x.right?'✓':'✗'}</span>
       <span class="q">${esc(x.text)}</span>${x.fb ? ` <span class="fb">— ${esc(x.fb)}</span>` : ''}</div>`).join("");
   }
+  if(r.kind === "vocab"){
+    if(!r.answers || !r.answers.length) return '<div class="nodetail">no detail saved</div>';
+    return r.answers.map((a, i) => `<div class="qline ${a.r === "missed" ? "bad" : ""}">
+      <span class="mk">${i+1} ${a.r === "got" ? "✓" : a.r === "close" ? "~" : "✗"}</span>
+      <span class="q">${esc(a.w)}</span> <span class="fb">— ${esc(a.r)} · ${esc(a.ch)} · ${esc(a.phase)}</span></div>`).join("");
+  }
   // flashcards
   if(!r.answers || !r.answers.length) return '<div class="nodetail">no detail saved</div>';
   if(r.answers[0].prompt === undefined) return '<div class="nodetail">no detail saved</div>';
@@ -100,18 +106,22 @@ function render(){
   const shown = rows.filter(r => !who || r.name === who);
   if(!shown.length){ $("list").innerHTML = '<p class="small">No runs yet.</p>'; return; }
   $("list").innerHTML = shown.map(r => {
-    const isNouns = r.kind === "nouns", isPrayer = r.kind === "prayer";
+    const isNouns = r.kind === "nouns", isPrayer = r.kind === "prayer", isVocab = r.kind === "vocab";
     const done = isPrayer ? (r.reciteCount ?? 0)
       : isNouns ? (r.answered ?? r.total) : (r.answers ? r.answers.length : 0);
     const label = isPrayer ? `${esc(r.title)} — memorize`
-      : isNouns ? esc(r.deck) : `${esc(r.deck)} · ${r.n} choices`;
+      : isNouns ? esc(r.deck)
+      : isVocab ? "Vocab Studying · daily session" : `${esc(r.deck)} · ${r.n} choices`;
     const pct = done ? Math.round(r.right / done * 100) : 0;
     const status = isPrayer
       ? `<span class="${r.reviewStage === "learned" ? "ok" : (r.dueAt && Date.now() >= r.dueAt) ? "live" : ""}">${done}/${r.total} groups at Recite · ${prayerStatus(r)}</span>`
+      : isVocab
+      ? `${r.reviewed ?? 0} reviewed · ${r.learned ?? 0} new · ${Math.round((r.durationSecs || 0) / 60)} min${r.brake ? ' · <span class="live">10-min brake</span>' : ''}${r.finished ? '' : ' · <span class="live">stopped early</span>'}`
       : r.finished
       ? `finished · <span class="${pctClass(pct)}">${pct}%</span>`
       : `<span class="live">in progress — on question ${Math.min(done + 1, r.total)} of ${r.total}</span>`;
-    const scLeft = isPrayer ? `${done}/${r.total}` : `${r.right}/${done}`;
+    const scLeft = isPrayer ? `${done}/${r.total}`
+      : isVocab ? `${(r.got ?? 0) + (r.close ?? 0)}/${(r.got ?? 0) + (r.close ?? 0) + (r.missed ?? 0)}` : `${r.right}/${done}`;
     const isOpen = open.has(r.id);
     return `<div class="run" data-id="${esc(r.id)}">
       <div class="top">
@@ -134,7 +144,7 @@ async function pull(){
   try {
     const r = await fetch(SYNC_URL, { headers: { "x-tok": SYNC_TOK } });
     if(!r.ok) throw new Error(r.status);
-    rows = await r.json();
+    rows = (await r.json()).filter(x => x.kind !== "vocab_state");
     rows.sort((a, b) => (b.when || 0) - (a.when || 0));
     $("stamp").textContent = "updated " + new Date().toLocaleTimeString();
     render();

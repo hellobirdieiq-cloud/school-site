@@ -3542,6 +3542,7 @@ async function syncReconcile(){
     const byId = new Map(local.map(s => [s.id, s]));
     let changed = false;
     remote.forEach(rr => {
+      if(String(rr.kind || "").startsWith("vocab")) return;   // vocab records live on /vocab, not here
       const l = byId.get(rr.id);
       if(!l){ local.push(rr); changed = true; }
       else if((rr.up || 0) > (l.up || 0)){ Object.assign(l, rr); changed = true; }
