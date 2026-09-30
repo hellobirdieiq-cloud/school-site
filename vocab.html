@@ -37,7 +37,8 @@
   /* dyslexia-friendly card */
   .card{background:var(--soft);border-radius:16px;padding:26px 22px;margin:12px 0 16px}
   .word{font-size:52px;font-weight:800;letter-spacing:.01em;line-height:1.15;margin:0}
-  .def{font-size:26px;line-height:1.5;margin:16px 0 0}
+  .def{font-size:28px;line-height:1.5;margin:16px 0 0}
+  .answord{font-size:52px !important;font-weight:800;line-height:1.15}
   .chlbl{font-size:15px;color:#9aa6c2;margin:0 0 6px}
   .btns{display:flex;flex-wrap:wrap;gap:12px;margin:14px 0}
   .btns button{flex:1;min-width:110px;min-height:64px;font-size:22px;font-weight:700;border-width:3px}
@@ -102,7 +103,7 @@
     <span class="small" id="phaseLbl"></span><span class="small" id="progLbl"></span>
   </div>
   <div class="bar"><div id="progBar"></div></div>
-  <div class="card">
+  <div class="card" id="cardBox">
     <p class="chlbl" id="cardCh"></p>
     <div class="row" style="align-items:flex-start;gap:12px">
       <button class="spk" id="spkBtn" title="Read aloud" aria-label="Read aloud">🔊</button>
@@ -110,6 +111,7 @@
     </div>
     <p class="def hidden" id="cardDef"></p>
   </div>
+  <div class="btns hidden" id="revealRow"><button id="revealBtn" style="flex:1">Show answer</button></div>
   <div class="verdict" id="sessNote"></div>
   <div class="btns" id="answerBtns">
     <button class="bgot" id="gotBtn">Got it</button>
@@ -723,10 +725,26 @@ function nextCard(){
   const showDef = s.phase === "learn";
   $("cardDef").textContent = v.d;
   $("cardDef").classList.toggle("hidden", !showDef);
+  $("cardDef").classList.remove("answord");
+  $("revealRow").classList.toggle("hidden", showDef);   // graded cards can reveal
   $("sessNote").textContent = "";
   $("answerBtns").classList.toggle("hidden", showDef);
   $("nextRow").classList.toggle("hidden", !showDef);
   speak(showDef ? `${w}. ${v.d}` : w, $("spkBtn"));
+}
+// tap the card or the Show answer button to reveal (once; no un-reveal).
+// Grading still works before or after.
+function answerText(){
+  if(CH){ const w = CH.queue[CH.i]; return CH.dir === "wm" ? byWord[w].d : w; }
+  if(SES) return byWord[curWord()].d;
+  return "";
+}
+function revealAnswer(){
+  // reveal is only armed while the Show-answer row is visible (graded + hidden)
+  if($("revealRow").classList.contains("hidden")) return;
+  $("cardDef").classList.remove("hidden");
+  $("revealRow").classList.add("hidden");
+  speak(answerText(), $("spkBtn"));
 }
 function answer(result){
   const s = SES; if(!s || s.teaching) return;
@@ -747,12 +765,14 @@ function answer(result){
   s.counts[result === "got" ? "got" : result === "close" ? "close" : "missed"]++;
   if(result === "missed"){
     // quick reteach: show + read the definition, then Next
+    const wasRevealed = !$("cardDef").classList.contains("hidden");
     s.teaching = true;
     $("cardDef").classList.remove("hidden");
+    $("revealRow").classList.add("hidden");
     $("sessNote").textContent = "Let's look at it together.";
     $("answerBtns").classList.add("hidden");
     $("nextRow").classList.remove("hidden");
-    speak(`${w}. ${byWord[w].d}`, $("spkBtn"));
+    if(!wasRevealed) speak(`${w}. ${byWord[w].d}`, $("spkBtn"));
     if(s.phase === "review") s.requeue.push(w);
     if(s.phase === "recall") s.retry.push(w);
     return;
@@ -858,6 +878,8 @@ function chCard(){
   $("cardWord").classList.toggle("defprompt", c.dir === "mw");
   $("cardDef").textContent = c.dir === "wm" ? v.d : w;
   $("cardDef").classList.add("hidden");
+  $("cardDef").classList.toggle("answord", c.dir === "mw");   // revealed word at word size
+  $("revealRow").classList.remove("hidden");
   $("sessNote").textContent = "";
   $("answerBtns").classList.remove("hidden");
   $("nextRow").classList.add("hidden");
@@ -875,11 +897,13 @@ function chAnswer(result){
   if(tryN === 1 && result !== "missed") c.firstTry++;
   if(result === "missed"){
     if(!c.missedEver.includes(w)) c.missedEver.push(w);
+    const wasRevealed = !$("cardDef").classList.contains("hidden");
     c.teaching = true;
     $("cardDef").classList.remove("hidden");
+    $("revealRow").classList.add("hidden");
     $("answerBtns").classList.add("hidden");
     $("nextRow").classList.remove("hidden");
-    speak(c.dir === "wm" ? byWord[w].d : w, $("spkBtn"));
+    if(!wasRevealed) speak(c.dir === "wm" ? byWord[w].d : w, $("spkBtn"));
     if(tryN >= 3){   // loop cap: teach, flag, and stop requeueing this word
       c.needsWork.push(w); c.cleared++;
       $("sessNote").textContent = "We'll flag this one to work on.";
@@ -1051,6 +1075,11 @@ $("viewPick").addEventListener("click", e => {
   wordsView();
 });
 $("wordsBack").onclick = () => { show("home"); homeView(); };
+$("revealBtn").onclick = revealAnswer;
+$("cardBox").addEventListener("click", e => {
+  if(e.target.closest(".spk")) return;   // the speaker button is its own control
+  revealAnswer();
+});
 $("newMinus").onclick = () => { S.newPerDay = Math.max(0, S.newPerDay - 1); jset(KS, S); homeView(); };
 $("newPlus").onclick = () => { S.newPerDay = Math.min(15, S.newPerDay + 1); jset(KS, S); homeView(); };
 $("upBtn").onclick = upView;
