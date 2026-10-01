@@ -83,6 +83,12 @@ function detailHtml(r){
       <span class="mk">${x.n} ${x.right?'✓':'✗'}</span>
       <span class="q">${esc(x.text)}</span>${x.fb ? ` <span class="fb">— ${esc(x.fb)}</span>` : ''}</div>`).join("");
   }
+  if(r.kind === "vocab_placement"){
+    if(!r.answers || !r.answers.length) return '<div class="nodetail">no detail saved</div>';
+    return r.answers.map((a, i) => `<div class="qline ${a.r === "placement_known" ? "" : "bad"}">
+      <span class="mk">${i+1} ${a.r === "placement_known" ? "✓" : a.r === "placement_close" ? "~" : "✗"}</span>
+      <span class="q">${esc(a.w)}</span> <span class="fb">— ${esc(String(a.r).replace("placement_", ""))}</span></div>`).join("");
+  }
   if(r.kind === "vocab_chapter"){
     if(!r.answers || !r.answers.length) return '<div class="nodetail">no detail saved</div>';
     return r.answers.map((a, i) => `<div class="qline ${a.r === "missed" ? "bad" : ""}">
@@ -113,13 +119,14 @@ function render(){
   if(!shown.length){ $("list").innerHTML = '<p class="small">No runs yet.</p>'; return; }
   $("list").innerHTML = shown.map(r => {
     const isNouns = r.kind === "nouns", isPrayer = r.kind === "prayer", isVocab = r.kind === "vocab",
-      isChap = r.kind === "vocab_chapter";
+      isChap = r.kind === "vocab_chapter", isPlace = r.kind === "vocab_placement";
     const done = isPrayer ? (r.reciteCount ?? 0)
       : isNouns ? (r.answered ?? r.total) : (r.answers ? r.answers.length : 0);
     const label = isPrayer ? `${esc(r.title)} — memorize`
       : isNouns ? esc(r.deck)
       : isVocab ? "Vocab Studying · daily session"
-      : isChap ? `Vocab · ${esc(r.ch)} · ${esc(r.dir)}${r.sub ? " · missed-only" : ""}` : `${esc(r.deck)} · ${r.n} choices`;
+      : isChap ? `Vocab · ${esc(r.ch)} · ${esc(r.dir)}${r.sub ? " · missed-only" : ""}`
+      : isPlace ? `Vocab placement · ${esc(r.ch)}` : `${esc(r.deck)} · ${r.n} choices`;
     const pct = done ? Math.round(r.right / done * 100) : 0;
     const status = isPrayer
       ? `<span class="${r.reviewStage === "learned" ? "ok" : (r.dueAt && Date.now() >= r.dueAt) ? "live" : ""}">${done}/${r.total} groups at Recite · ${prayerStatus(r)}</span>`
@@ -127,12 +134,15 @@ function render(){
       ? `${r.reviewed ?? 0} reviewed · ${r.learned ?? 0} new · ${Math.round((r.durationSecs || 0) / 60)} min${r.brake ? ' · <span class="live">10-min brake</span>' : ''}${r.finished ? '' : ' · <span class="live">stopped early</span>'}`
       : isChap
       ? (r.finished ? `first try ${r.firstTry ?? 0}/${r.total}` : '<span class="live">stopped</span>')
+      : isPlace
+      ? `knew ${r.known ?? 0} of ${r.checked ?? 0} checked${r.finished ? "" : ' · <span class="live">stopped</span>'}`
       : r.finished
       ? `finished · <span class="${pctClass(pct)}">${pct}%</span>`
       : `<span class="live">in progress — on question ${Math.min(done + 1, r.total)} of ${r.total}</span>`;
     const scLeft = isPrayer ? `${done}/${r.total}`
       : isVocab ? `${(r.got ?? 0) + (r.close ?? 0)}/${(r.got ?? 0) + (r.close ?? 0) + (r.missed ?? 0)}`
-      : isChap ? `${r.firstTry ?? 0}/${r.total}` : `${r.right}/${done}`;
+      : isChap ? `${r.firstTry ?? 0}/${r.total}`
+      : isPlace ? `${r.known ?? 0}/${r.checked ?? 0}` : `${r.right}/${done}`;
     const isOpen = open.has(r.id);
     return `<div class="run" data-id="${esc(r.id)}">
       <div class="top">

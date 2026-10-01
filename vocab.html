@@ -87,6 +87,7 @@
       <button class="primary" id="startBtn">Start today's session</button>
       <button id="chapterBtn">Study a chapter</button>
       <button id="upBtn">Up next</button>
+      <button id="plBtn">Check what he knows</button>
       <button id="wordsBtn">Words</button>
     </p>
     <h2>New words per day</h2>
@@ -156,6 +157,26 @@
   <p class="row">
     <button class="primary" id="brakeGo">See today's score</button>
     <button id="brakeLearn">Learn anyway</button>
+  </p>
+</section>
+
+<section id="plpick" class="hidden">
+  <h1>Check what he knows</h1>
+  <p class="small">A quick check — Got it marks a word as already known (first check in 7 days). Close or Missed words get taught normally later. Nothing here counts as today's new words.</p>
+  <div class="row" id="plList" style="margin:12px 0"></div>
+  <p class="row"><button id="plPickBack">Back</button></p>
+</section>
+
+<section id="pldone" class="hidden">
+  <h1>Check done!</h1>
+  <div class="score" id="plScore"></div>
+  <p class="small">Already knew</p>
+  <p id="plKnown"></p>
+  <p class="small">Words to learn</p>
+  <p id="plToLearn"></p>
+  <p class="row">
+    <button class="primary" id="plAgain">Check another chapter</button>
+    <button id="plDone">Done</button>
   </p>
 </section>
 
@@ -526,12 +547,14 @@ function syncPush(rec){
 function stateRecord(){
   const w = {};
   for(const [k, v] of Object.entries(W)){
-    if(!v.intro) continue;
+    if(!v.intro && !v.pc) continue;   // checked-but-unknown words must sync too
+    // flags: 1=f14, 2=mastered, 4=placement-checked, 8=known-at-check, 16=introduced
     w[k] = [v.st, Math.round(v.due / 864e5), v.g, v.c, v.m,
-      v.h.map(r => r[0]).join(""), (v.f14 ? 1 : 0) | (v.mast ? 2 : 0)];
+      v.h.map(r => r[0]).join(""),
+      (v.f14 ? 1 : 0) | (v.mast ? 2 : 0) | (v.pc ? 4 : 0) | (v.pk ? 8 : 0) | (v.intro ? 16 : 0)];
   }
   return { id: "vocab_state:" + deviceId, kind: "vocab_state", name: kidName(),
-    when: Date.now(), up: Date.now(), w,
+    v: 2, when: Date.now(), up: Date.now(), w,
     locked: SC.locked, streak: SC.streak, lastDaily: SC.lastDaily, best: chBest(), upnext: UP };
 }
 function pushState(){ if(kidName()) syncPush(stateRecord()); }
@@ -544,11 +567,14 @@ async function maybeRestore(){
     const recs = (await r.json()).filter(x => x.kind === "vocab_state")
       .sort((a, b) => (b.up || 0) - (a.up || 0));
     if(!recs.length || !recs[0].w) return;
+    const ver = recs[0].v || 1;   // v1 records predate the flag bits: all entries were introduced
     for(const [k, a] of Object.entries(recs[0].w)){
       if(!byWord[k] || !Array.isArray(a)) continue;
       W[k] = { st: a[0], due: a[1] * 864e5, g: a[2], c: a[3], m: a[4],
         h: [...String(a[5] || "")].map(ch => ch === "g" ? "got" : ch === "c" ? "close" : "missed"),
-        f14: !!(a[6] & 1), mast: !!(a[6] & 2), intro: true };
+        f14: !!(a[6] & 1), mast: !!(a[6] & 2),
+        pc: ver >= 2 ? !!(a[6] & 4) : false, pk: ver >= 2 ? !!(a[6] & 8) : false,
+        intro: ver >= 2 ? !!(a[6] & 16) : true };
     }
     jset(KW, W);
     if(Array.isArray(recs[0].locked)) SC.locked = recs[0].locked.filter(w => byWord[w]);
@@ -680,7 +706,7 @@ document.addEventListener("keydown", () => { if(SES) SES.lastAct = Date.now(); }
 
 const BRAKE_MS = 10 * 60 * 1000;
 function show(id){
-  ["home","sess","brake","done","words","chpick","chdone","upnext"].forEach(s => $(s).classList.toggle("hidden", s !== id));
+  ["home","sess","brake","done","words","chpick","chdone","upnext","plpick","pldone"].forEach(s => $(s).classList.toggle("hidden", s !== id));
 }
 function curWord(){ return SES.queue[SES.i]; }
 function nextCard(){
@@ -735,6 +761,7 @@ function nextCard(){
 // tap the card or the Show answer button to reveal (once; no un-reveal).
 // Grading still works before or after.
 function answerText(){
+  if(PL) return byWord[PL.queue[PL.i]].d;
   if(CH){ const w = CH.queue[CH.i]; return CH.dir === "wm" ? byWord[w].d : w; }
   if(SES) return byWord[curWord()].d;
   return "";
@@ -832,6 +859,91 @@ function finishSession(finished){
   $("doneTime").textContent = `Time: ${Math.floor(secs / 60)}m ${secs % 60}s${s.brake ? " · review hit the 10-minute brake" : ""}`;
   SES = null;
   show("done");
+}
+
+// ---------------- placement check ("Check what he knows") ---------------------
+// Got it = already known: introduced at the 7-day stage, due in 7 days — the
+// normal engine takes over from there (locked-in only on the real 7-day pass).
+// Close/Missed words stay un-introduced and get taught normally later. Every
+// graded word is marked placement-checked (pc) so it isn't asked again.
+// Placement never touches Today's-new-words, the streak, or newPerDay.
+const KPA = "vocab_placement_attempts";
+let PL = null;   // active check: {rid, ch, queue, i, known, toLearn, startedAt, answers}
+const plCandidates = ch => VOCAB.filter(v => v.ch === ch && !(W[v.w] && (W[v.w].intro || W[v.w].pc))).map(v => v.w);
+function plPickView(){
+  show("plpick");
+  const box = $("plList"); box.innerHTML = "";
+  CHAPTERS.forEach(ch => {
+    const n = plCandidates(ch).length;
+    const b = document.createElement("button");
+    b.innerHTML = `${ch}<br><span class="small">${n} not checked yet</span>`;
+    b.disabled = n === 0;
+    b.onclick = () => startPlacement(ch);
+    box.appendChild(b);
+  });
+}
+function startPlacement(ch){
+  if(!kidName()) return;
+  const queue = plCandidates(ch);
+  if(!queue.length) return;
+  PL = { rid: Date.now() + "-" + Math.random().toString(36).slice(2, 7), ch,
+    queue, i: 0, known: [], toLearn: [], startedAt: Date.now(), answers: [] };
+  show("sess");
+  plCard();
+}
+function plCard(){
+  ttsStop();
+  const p = PL;
+  if(p.i >= p.queue.length) return plFinish(true);
+  const w = p.queue[p.i], v = byWord[w];
+  $("phaseLbl").textContent = `Check what he knows · ${p.ch}`;
+  $("progLbl").textContent = `${p.i + 1} of ${p.queue.length}`;
+  $("progBar").style.width = `${(p.i / p.queue.length) * 100}%`;
+  $("cardCh").textContent = v.ch;
+  $("cardWord").textContent = w;
+  $("cardWord").classList.remove("defprompt");
+  $("cardDef").textContent = v.d;
+  $("cardDef").classList.add("hidden");
+  $("cardDef").classList.remove("answord");
+  $("revealRow").classList.remove("hidden");
+  $("sessNote").textContent = "";
+  $("answerBtns").classList.remove("hidden");
+  $("nextRow").classList.add("hidden");
+  speak(w, $("spkBtn"));
+}
+function plAnswer(result){
+  const p = PL; if(!p) return;
+  const w = p.queue[p.i], v = wordState(w);
+  v.pc = true;
+  let r;
+  if(result === "got"){
+    r = "placement_known";
+    v.pk = true; v.intro = true; v.st = 3; v.due = dueInDays(7);   // 7-day stage
+    UP = UP.filter(x => x !== w); upSave();
+    p.known.push(w);
+  } else {
+    r = result === "close" ? "placement_close" : "placement_missed";
+    p.toLearn.push(w);
+  }
+  jset(KW, W);
+  const log = jget(KPA, []); log.push({ w, ch: byWord[w].ch, t: Date.now(), r, rid: p.rid }); jset(KPA, log);
+  p.answers.push({ w, r });
+  p.i++; plCard();
+}
+function plFinish(finished){
+  const p = PL; if(!p) return;
+  ttsStop();
+  const secs = Math.round((Date.now() - p.startedAt) / 1000);
+  const rec = { id: p.rid, kind: "vocab_placement", name: kidName(), deck: "Vocab Studying",
+    ch: p.ch, when: p.startedAt, up: Date.now(), finished,
+    total: p.queue.length, checked: p.answers.length, known: p.known.length,
+    knownWords: p.known, toLearn: p.toLearn, durationSecs: secs, answers: p.answers };
+  if(kidName()){ syncPush(rec); pushState(); }
+  $("plScore").textContent = `Already knew: ${p.known.length} of ${p.answers.length}`;
+  $("plKnown").textContent = p.known.length ? p.known.join(", ") : "—";
+  $("plToLearn").textContent = p.toLearn.length ? p.toLearn.join(", ") : "—";
+  PL = null;
+  show("pldone");
 }
 
 // ---------------- chapter practice (never touches the daily schedule) ---------
@@ -1048,6 +1160,7 @@ function wordsView(){
       const s = W[v.w];
       const div = document.createElement("div"); div.className = "wrow";
       const tags = (s && s.mast ? '<span class="tag mast">Mastered</span>' : "") +
+        (s && s.pk ? '<span class="tag mast">known at check</span>' : "") +
         (s && s.intro && flagged(v.w) ? '<span class="tag flag">Needs extra teaching</span>' : "");
       const meta = s && s.intro
         ? `stage: ${STAGE_NAME[s.st]} · next: ${new Date(s.due).toLocaleDateString()} · got ${s.g} / close ${s.c} / missed ${s.m}`
@@ -1095,14 +1208,19 @@ $("brakeLearn").onclick = () => {
 // mode dispatch: chapter run when CH is set, daily session otherwise. CH is
 // cleared on every exit (done, stop, home) and is in-memory only, so a reload
 // always lands back in daily mode.
-$("gotBtn").onclick = () => CH ? chAnswer("got") : answer("got");
-$("closeBtn").onclick = () => CH ? chAnswer("close") : answer("close");
-$("missBtn").onclick = () => CH ? chAnswer("missed") : answer("missed");
+$("gotBtn").onclick = () => PL ? plAnswer("got") : CH ? chAnswer("got") : answer("got");
+$("closeBtn").onclick = () => PL ? plAnswer("close") : CH ? chAnswer("close") : answer("close");
+$("missBtn").onclick = () => PL ? plAnswer("missed") : CH ? chAnswer("missed") : answer("missed");
 $("nextBtn").onclick = () => {
   if(CH){ CH.teaching = false; CH.i++; chCard(); return; }
   const s = SES; if(!s) return; s.teaching = false; s.i++; nextCard();
 };
 $("spkBtn").onclick = () => {
+  if(PL){
+    const w = PL.queue[PL.i], revealed = !$("cardDef").classList.contains("hidden");
+    speak(revealed ? `${w}. ${byWord[w].d}` : w, $("spkBtn"));
+    return;
+  }
   if(CH){
     const w = CH.queue[CH.i], revealed = !$("cardDef").classList.contains("hidden");
     const prompt = CH.dir === "wm" ? w : byWord[w].d;
@@ -1113,7 +1231,11 @@ $("spkBtn").onclick = () => {
   const w = curWord(), defShown = !$("cardDef").classList.contains("hidden");
   speak(defShown ? `${w}. ${byWord[w].d}` : w, $("spkBtn"));
 };
-$("exitBtn").onclick = () => { CH ? chFinish(false) : finishSession(false); };
+$("exitBtn").onclick = () => { PL ? plFinish(false) : CH ? chFinish(false) : finishSession(false); };
+$("plBtn").onclick = plPickView;
+$("plPickBack").onclick = () => { PL = null; show("home"); homeView(); };
+$("plAgain").onclick = plPickView;
+$("plDone").onclick = () => { show("home"); homeView(); };
 $("chapterBtn").onclick = chPickView;
 $("chPickBack").onclick = () => { CH = null; show("home"); homeView(); };
 $("dirWM").onclick = () => { const ch = $("chpick").dataset.ch; if(ch) startChapterRun(ch, "wm", VOCAB.filter(v => v.ch === ch).map(v => v.w)); };
