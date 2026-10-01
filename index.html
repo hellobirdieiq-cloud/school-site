@@ -33,7 +33,8 @@ const SECTIONS = [
   { subject: "All Subjects", quizzes: [
       { label: "Study", href: "study" } ] },
   { subject: "Vocab Studying", quizzes: [
-      { label: "Vocab", href: "vocab" } ] },
+      { label: "Vocab", href: "vocab" },
+      { label: "Vocab 2nd grade", href: "vocab2" } ] },
 ];
 document.getElementById("sections").innerHTML = SECTIONS.map(s => `
   <h2>${s.subject}</h2>

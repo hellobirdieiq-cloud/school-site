@@ -1,0 +1,1051 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>📚</text></svg>">
+<meta name="color-scheme" content="dark">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Vocab 2nd grade</title>
+<style>
+  /* tokens + base copied from study.html so the site reads as one app */
+  :root{
+    --ink:#eef1f8; --paper:#0f1626; --line:#2c3852; --soft:#1a2338;
+    --go:#4fd68a; --go-bg:#153826; --no:#ff7b72; --no-bg:#3a1c1c; --mark:#ffd23f;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;background:var(--paper);color:var(--ink);
+    font-family:ui-rounded,"SF Pro Rounded","Nunito","Segoe UI",system-ui,sans-serif;
+    font-size:18px;line-height:1.45;font-style:normal}
+  main{max-width:720px;margin:0 auto;padding:24px 18px 60px}
+  h1{font-size:32px;margin:0 0 6px}
+  h2{font-size:21px;margin:24px 0 10px}
+  p{margin:0 0 12px}
+  em,i{font-style:normal}
+  button{font:inherit;color:var(--ink);background:var(--paper);border:2px solid var(--ink);
+    border-radius:12px;padding:12px 18px;cursor:pointer}
+  button:focus-visible{outline:3px solid var(--mark);outline-offset:2px}
+  .primary{background:var(--mark);color:#0f1626;border-color:var(--mark);font-size:20px;padding:14px 26px}
+  button:disabled{opacity:.4;cursor:not-allowed}
+  .row{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+  .small{font-size:15px;color:#9aa6c2}
+  .bar{height:10px;background:var(--line);border-radius:999px;overflow:hidden;margin:6px 0 18px}
+  .bar div{height:100%;background:var(--mark);width:0;transition:width .25s}
+  .spk{font:inherit;cursor:pointer;background:var(--soft);color:var(--ink);
+    border:2px solid var(--line);border-radius:10px;min-width:48px;min-height:48px;
+    padding:6px 10px;line-height:1;flex:none}
+  .spk.on{background:var(--mark);color:#0f1626;border-color:var(--mark)}
+  /* dyslexia-friendly card */
+  .card{background:var(--soft);border-radius:16px;padding:26px 22px;margin:12px 0 16px}
+  .word{font-size:52px;font-weight:800;letter-spacing:.01em;line-height:1.15;margin:0}
+  .def{font-size:28px;line-height:1.5;margin:16px 0 0}
+  .answord{font-size:52px !important;font-weight:800;line-height:1.15}
+  .chlbl{font-size:15px;color:#9aa6c2;margin:0 0 6px}
+  .btns{display:flex;flex-wrap:wrap;gap:12px;margin:14px 0}
+  .btns button{flex:1;min-width:110px;min-height:64px;font-size:22px;font-weight:700;border-width:3px}
+  .bgot{background:var(--go-bg);border-color:var(--go)}
+  .bclose{background:#3a3310;border-color:var(--mark)}
+  .bmiss{background:var(--no-bg);border-color:var(--no)}
+  .verdict{font-size:20px;font-weight:700;min-height:28px;margin:8px 0}
+  .note{border:2px solid var(--mark);border-radius:12px;padding:12px 16px;margin:12px 0;font-size:19px}
+  .score{font-size:52px;font-weight:800;line-height:1;margin:10px 0}
+  .hidden{display:none}
+  .wrow{border:2px solid var(--line);border-radius:12px;padding:10px 14px;margin-bottom:8px}
+  .wrow b{font-size:20px}
+  .wrow .meta{color:#9aa6c2;font-size:15px}
+  .tag{display:inline-block;font-size:13px;font-weight:700;border-radius:999px;padding:2px 10px;margin-left:6px}
+  .tag.mast{background:var(--go-bg);color:var(--go);border:1px solid var(--go)}
+  .tag.flag{background:var(--no-bg);color:var(--no);border:1px solid var(--no)}
+  .defprompt{font-size:30px !important;font-weight:700;line-height:1.45}
+  .lline{font-size:20px;line-height:1.6;margin:0 0 6px}
+  .upw{margin:0 6px 6px 0;padding:10px 14px;border-color:var(--line)}
+  .upw[aria-pressed="true"]{background:var(--go-bg);border-color:var(--go)}
+  .upx{min-width:44px;min-height:44px;float:right;border-color:var(--no);color:var(--no)}
+  .upall{font-size:14px;padding:6px 12px;margin-left:8px;vertical-align:middle}
+  input[type=text]{font:inherit;color:var(--ink);background:var(--soft);border:2px solid var(--line);
+    border-radius:12px;padding:12px 14px;width:100%;max-width:320px}
+  .seg button[aria-pressed="true"]{background:var(--mark);color:#0f1626;border-color:var(--mark)}
+  table{border-collapse:collapse;width:100%}
+  th,td{text-align:left;padding:6px;border-bottom:1px solid var(--line);font-size:15px}
+</style>
+</head>
+<body>
+<main>
+
+<section id="home">
+  <h1>Vocab 2nd grade</h1>
+  <p class="small">Daily word practice. An adult runs it — answers out loud.</p>
+  <div id="nameGate" class="hidden">
+    <h2>Who is studying?</h2>
+    <div class="row"><input type="text" id="nameIn" placeholder="Name" maxlength="20" autocomplete="off">
+    <button class="primary" id="nameSave">Save</button></div>
+  </div>
+  <div id="homeBody">
+    <p id="dueLine" class="small"></p>
+    <p id="scoreLines" style="font-size:19px;line-height:1.7;margin:6px 0 10px"></p>
+    <p id="autoNote" class="note hidden"></p>
+    <p class="row">
+      <button class="primary" id="startBtn">Start today's session</button>
+      <button id="chapterBtn">Study a chapter</button>
+      <button id="upBtn">Up next</button>
+      <button id="plBtn">Check what she knows</button>
+      <button id="wordsBtn">Words</button>
+    </p>
+    <h2>New words per day</h2>
+    <div class="row" id="newStep">
+      <button id="newMinus" style="min-width:60px;min-height:52px;font-size:26px">−</button>
+      <span id="newNum" style="font-size:28px;font-weight:800;min-width:44px;text-align:center"></span>
+      <button id="newPlus" style="min-width:60px;min-height:52px;font-size:26px">+</button>
+    </div>
+  </div>
+</section>
+
+<section id="sess" class="hidden">
+  <div class="row" style="justify-content:space-between">
+    <span class="small" id="phaseLbl"></span><span class="small" id="progLbl"></span>
+  </div>
+  <div class="bar"><div id="progBar"></div></div>
+  <div class="card" id="cardBox">
+    <p class="chlbl" id="cardCh"></p>
+    <div class="row" style="align-items:flex-start;gap:12px">
+      <button class="spk" id="spkBtn" title="Read aloud" aria-label="Read aloud">🔊</button>
+      <p class="word" id="cardWord" style="flex:1"></p>
+    </div>
+    <p class="def hidden" id="cardDef"></p>
+  </div>
+  <div class="btns hidden" id="revealRow"><button id="revealBtn" style="flex:1">Show answer</button></div>
+  <div class="verdict" id="sessNote"></div>
+  <div class="btns" id="answerBtns">
+    <button class="bgot" id="gotBtn">Got it</button>
+    <button class="bclose" id="closeBtn">Close</button>
+    <button class="bmiss" id="missBtn">Missed</button>
+  </div>
+  <div class="btns hidden" id="nextRow"><button class="primary" id="nextBtn" style="flex:1">Next</button></div>
+  <p class="row"><button id="exitBtn">Stop for today</button></p>
+</section>
+
+<section id="chpick" class="hidden">
+  <h1>Study a chapter</h1>
+  <p class="small">Practice for a school quiz. This never changes the daily schedule.</p>
+  <div class="row seg" id="chList" style="margin:10px 0"></div>
+  <div id="chDirRow" class="hidden">
+    <h2>Which way?</h2>
+    <div class="row">
+      <button class="primary" id="dirWM">Word → meaning</button>
+      <button class="primary" id="dirMW">Meaning → word</button>
+    </div>
+  </div>
+  <p class="row" style="margin-top:20px"><button id="chPickBack">Back</button></p>
+</section>
+
+<section id="chdone" class="hidden">
+  <h1>Chapter done!</h1>
+  <p class="small">First-try score</p>
+  <div class="score" id="chScore"></div>
+  <p id="chBestLine" style="font-size:20px;font-weight:700"></p>
+  <p id="chMissed" class="small"></p>
+  <p id="chNeeds" class="small" style="color:var(--no)"></p>
+  <p id="chTime" class="small"></p>
+  <p class="row">
+    <button class="primary" id="chRetryBtn">Practice missed words only</button>
+    <button id="chDoneHome">Done</button>
+  </p>
+</section>
+
+<section id="brake" class="hidden">
+  <h1>Nice work!</h1>
+  <p class="note">Review took 10+ min — no new words today</p>
+  <p class="row">
+    <button class="primary" id="brakeGo">See today's score</button>
+    <button id="brakeLearn">Learn anyway</button>
+  </p>
+</section>
+
+<section id="plpick" class="hidden">
+  <h1>Check what she knows</h1>
+  <p class="small">A quick check — Got it marks a word as already known (first check in 7 days). Close or Missed words get taught normally later. Nothing here counts as today's new words.</p>
+  <div class="row" id="plList" style="margin:12px 0"></div>
+  <p class="row"><button id="plPickBack">Back</button></p>
+</section>
+
+<section id="pldone" class="hidden">
+  <h1>Check done!</h1>
+  <div class="score" id="plScore"></div>
+  <p class="small">Already knew</p>
+  <p id="plKnown"></p>
+  <p class="small">Words to learn</p>
+  <p id="plToLearn"></p>
+  <p class="row">
+    <button class="primary" id="plAgain">Check another chapter</button>
+    <button id="plDone">Done</button>
+  </p>
+</section>
+
+<section id="upnext" class="hidden">
+  <h1>Up next</h1>
+  <p class="small">Pick which words get learned next. The top of the list goes first; if it runs out, words come in book order.</p>
+  <p class="row"><button id="upBack">Back</button><button id="upClear">Clear all</button></p>
+  <div id="upQueue" style="margin:12px 0"></div>
+  <h2>Add words</h2>
+  <div id="upPicker"></div>
+</section>
+
+<section id="done" class="hidden">
+  <h1>All done!</h1>
+  <div class="score" id="doneScore"></div>
+  <p id="doneCounts"></p>
+  <p class="small" id="doneTime"></p>
+  <p class="row"><button class="primary" id="doneHome">Home</button></p>
+</section>
+
+<section id="words" class="hidden">
+  <h1>Words</h1>
+  <p class="small">All words by chapter: stage, next check, and results.</p>
+  <p class="row"><button id="wordsBack">Back</button></p>
+  <div class="row seg" id="viewPick" style="margin:10px 0">
+    <button data-v="cards">Cards</button>
+    <button data-v="list">List</button>
+  </div>
+  <div id="wordList"></div>
+</section>
+
+</main>
+<script>
+// ---------------- word data (definitions verbatim; ex kept empty for now) ----
+const VOCAB = [
+  { ch:"Set 1", w:"enormous", d:"very big", ex:"" },
+  { ch:"Set 1", w:"tiny", d:"very small", ex:"" },
+  { ch:"Set 1", w:"swift", d:"very fast; quick", ex:"" },
+  { ch:"Set 1", w:"silent", d:"quiet; making no sound", ex:"" },
+  { ch:"Set 1", w:"clever", d:"smart at figuring things out", ex:"" },
+  { ch:"Set 1", w:"curious", d:"wanting to know or learn", ex:"" },
+  { ch:"Set 1", w:"cautious", d:"careful to avoid danger", ex:"" },
+  { ch:"Set 1", w:"eager", d:"excited and ready to do something", ex:"" },
+  { ch:"Set 1", w:"timid", d:"shy or easily scared", ex:"" },
+  { ch:"Set 1", w:"cheerful", d:"happy and smiley", ex:"" },
+  { ch:"Set 1", w:"gloomy", d:"dark or sad", ex:"" },
+  { ch:"Set 1", w:"furious", d:"very angry", ex:"" },
+  { ch:"Set 1", w:"calm", d:"peaceful and not upset", ex:"" },
+  { ch:"Set 1", w:"proud", d:"pleased with something you did", ex:"" },
+  { ch:"Set 1", w:"nervous", d:"worried or a little afraid", ex:"" },
+  { ch:"Set 1", w:"exhausted", d:"super tired", ex:"" },
+  { ch:"Set 1", w:"fortunate", d:"lucky", ex:"" },
+  { ch:"Set 1", w:"miserable", d:"very unhappy or uncomfortable", ex:"" },
+  { ch:"Set 1", w:"puzzled", d:"confused", ex:"" },
+  { ch:"Set 1", w:"startled", d:"suddenly surprised", ex:"" },
+  { ch:"Set 2", w:"vanish", d:"to disappear", ex:"" },
+  { ch:"Set 2", w:"observe", d:"to watch or notice carefully", ex:"" },
+  { ch:"Set 2", w:"examine", d:"to look at carefully", ex:"" },
+  { ch:"Set 2", w:"discover", d:"to find or learn something new", ex:"" },
+  { ch:"Set 2", w:"investigate", d:"to look closely to find answers", ex:"" },
+  { ch:"Set 2", w:"predict", d:"to say what you think will happen", ex:"" },
+  { ch:"Set 2", w:"compare", d:"to look for how things are alike or different", ex:"" },
+  { ch:"Set 2", w:"describe", d:"to tell what something is like", ex:"" },
+  { ch:"Set 2", w:"explain", d:"to make something easier to understand", ex:"" },
+  { ch:"Set 2", w:"identify", d:"to name or tell what something is", ex:"" },
+  { ch:"Set 2", w:"recall", d:"to remember", ex:"" },
+  { ch:"Set 2", w:"notice", d:"to see or spot something", ex:"" },
+  { ch:"Set 2", w:"search", d:"to look for something", ex:"" },
+  { ch:"Set 2", w:"gather", d:"to collect or bring together", ex:"" },
+  { ch:"Set 2", w:"separate", d:"to divide or keep apart", ex:"" },
+  { ch:"Set 2", w:"combine", d:"to put together", ex:"" },
+  { ch:"Set 2", w:"arrange", d:"to put things in order", ex:"" },
+  { ch:"Set 2", w:"select", d:"to choose", ex:"" },
+  { ch:"Set 2", w:"require", d:"to need", ex:"" },
+  { ch:"Set 2", w:"attempt", d:"to try", ex:"" },
+  { ch:"Set 3", w:"accomplish", d:"to successfully finish something", ex:"" },
+  { ch:"Set 3", w:"improve", d:"to make better", ex:"" },
+  { ch:"Set 3", w:"protect", d:"to keep safe", ex:"" },
+  { ch:"Set 3", w:"prevent", d:"to stop something from happening", ex:"" },
+  { ch:"Set 3", w:"avoid", d:"to stay away from", ex:"" },
+  { ch:"Set 3", w:"struggle", d:"to have a hard time doing something", ex:"" },
+  { ch:"Set 3", w:"wander", d:"to walk around with no plan of where to go", ex:"" },
+  { ch:"Set 3", w:"approach", d:"to move closer", ex:"" },
+  { ch:"Set 3", w:"retreat", d:"to move back or away", ex:"" },
+  { ch:"Set 3", w:"remain", d:"to stay", ex:"" },
+  { ch:"Set 3", w:"fragile", d:"easily broken or damaged", ex:"" },
+  { ch:"Set 3", w:"sturdy", d:"strong and not easily broken", ex:"" },
+  { ch:"Set 3", w:"rough", d:"bumpy or scratchy", ex:"" },
+  { ch:"Set 3", w:"smooth", d:"flat and even, not bumpy", ex:"" },
+  { ch:"Set 3", w:"narrow", d:"not very wide", ex:"" },
+  { ch:"Set 3", w:"steep", d:"going up or down a lot (like a steep hill)", ex:"" },
+  { ch:"Set 3", w:"shallow", d:"not deep", ex:"" },
+  { ch:"Set 3", w:"distant", d:"far away", ex:"" },
+  { ch:"Set 3", w:"ancient", d:"very old; from long ago", ex:"" },
+  { ch:"Set 3", w:"rare", d:"not seen very often", ex:"" },
+  { ch:"Set 4", w:"ordinary", d:"normal; not unusual", ex:"" },
+  { ch:"Set 4", w:"peculiar", d:"strange; weird", ex:"" },
+  { ch:"Set 4", w:"similar", d:"almost the same", ex:"" },
+  { ch:"Set 4", w:"opposite", d:"as different as can be (like hot and cold)", ex:"" },
+  { ch:"Set 4", w:"entire", d:"whole; all of it", ex:"" },
+  { ch:"Set 4", w:"scarce", d:"hard to find; not enough", ex:"" },
+  { ch:"Set 4", w:"plentiful", d:"more than enough; a lot", ex:"" },
+  { ch:"Set 4", w:"valuable", d:"worth a lot or very useful", ex:"" },
+  { ch:"Set 4", w:"necessary", d:"needed", ex:"" },
+  { ch:"Set 4", w:"temporary", d:"lasting only a short time", ex:"" },
+  { ch:"Set 4", w:"consequence", d:"what happens because of something (good or bad)", ex:"" },
+  { ch:"Set 4", w:"reason", d:"why something happens", ex:"" },
+  { ch:"Set 4", w:"purpose", d:"the reason something is done", ex:"" },
+  { ch:"Set 4", w:"effect", d:"something that happens because of something else", ex:"" },
+  { ch:"Set 4", w:"evidence", d:"clues that show something is true", ex:"" },
+  { ch:"Set 4", w:"solution", d:"an answer to a problem", ex:"" },
+  { ch:"Set 4", w:"problem", d:"something difficult that needs to be solved", ex:"" },
+  { ch:"Set 4", w:"choice", d:"something you decide between", ex:"" },
+  { ch:"Set 4", w:"opinion", d:"what someone thinks or believes", ex:"" },
+  { ch:"Set 4", w:"fact", d:"something true that you can check", ex:"" },
+  { ch:"Set 5", w:"persuade", d:"to get someone to agree by giving reasons", ex:"" },
+  { ch:"Set 5", w:"cooperate", d:"to work together", ex:"" },
+  { ch:"Set 5", w:"contribute", d:"to give or add something to help", ex:"" },
+  { ch:"Set 5", w:"responsible", d:"trusted to take care of things", ex:"" },
+  { ch:"Set 5", w:"generous", d:"willing to give or share", ex:"" },
+  { ch:"Set 5", w:"selfish", d:"caring mostly about yourself", ex:"" },
+  { ch:"Set 5", w:"patient", d:"able to wait calmly", ex:"" },
+  { ch:"Set 5", w:"honest", d:"truthful", ex:"" },
+  { ch:"Set 5", w:"loyal", d:"always on someone's side", ex:"" },
+  { ch:"Set 5", w:"respectful", d:"kind and polite to others", ex:"" },
+  { ch:"Set 5", w:"courageous", d:"brave", ex:"" },
+  { ch:"Set 5", w:"determined", d:"won't give up", ex:"" },
+  { ch:"Set 5", w:"grateful", d:"thankful", ex:"" },
+  { ch:"Set 5", w:"independent", d:"able to do things on your own", ex:"" },
+  { ch:"Set 5", w:"creative", d:"good at making or thinking of new things", ex:"" },
+  { ch:"Set 5", w:"essential", d:"really needed; very important", ex:"" },
+  { ch:"Set 5", w:"habitat", d:"the natural home of a plant or animal", ex:"" },
+  { ch:"Set 5", w:"survive", d:"to stay alive", ex:"" },
+  { ch:"Set 5", w:"adapt", d:"to change to fit in somewhere new", ex:"" },
+  { ch:"Set 5", w:"environment", d:"the world around a living thing (land, water, air)", ex:"" },
+];
+const byWord = Object.fromEntries(VOCAB.map(v => [v.w, v]));
+// chapters in LIST order (labels are display text; a future "Unit 12" sorts by
+// position in VOCAB, never alphabetically by label)
+const CHAPTERS = [...new Set(VOCAB.map(v => v.ch))];
+
+// ---------------- storage (all NEW keys, prefixed vocab_) ---------------------
+const $ = id => document.getElementById(id);
+const KW = "vocab2_words", KA = "vocab2_attempts", KS = "vocab2_settings", KN = "vocab2_name", KD = "vocab2_device";
+const jget = (k, d) => { try { return JSON.parse(localStorage.getItem(k)) ?? d; } catch(e){ return d; } };
+function shuffle(a){ for(let i = a.length - 1; i > 0; i--){ const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; }
+const jset = (k, v) => localStorage.setItem(k, JSON.stringify(v));
+let W = jget(KW, {});          // per word: {st,due,g,c,m,h:[last3],f14,mast,intro}
+let S = jget(KS, { newPerDay: 5, autoDrop: false, brakeStreak: 0, okStreak: 0, lastEval: "" });
+const deviceId = localStorage.getItem(KD) ||
+  (localStorage.setItem(KD, Math.random().toString(36).slice(2, 10)), localStorage.getItem(KD));
+// name: read study's nickname if set (never written); else our own vocab_ key
+const kidName = () => (localStorage.getItem(KN) || "").trim();   // own name only — never the study nickname
+
+// ---------------- sync (same worker/results system as /study) ----------------
+const SYNC_URL = "https://school-sync.school-sync.workers.dev/r";
+const SYNC_TOK = "2cBf3scAPtUbxtssRBXcPYHuB8C_xxU6";
+function syncPush(rec){
+  try {
+    fetch(SYNC_URL, { method: "POST",
+      headers: { "content-type": "application/json", "x-tok": SYNC_TOK },
+      body: JSON.stringify({ ...rec, dev: deviceId }) }).catch(() => {});
+  } catch(e){}
+}
+// compact per-word state record: word -> [stage, dueDay, got, close, missed,
+// last3 ("g"/"c"/"m"), flags (1=f14, 2=mastered)]
+function stateRecord(){
+  const w = {};
+  for(const [k, v] of Object.entries(W)){
+    if(!v.intro && !v.pc) continue;   // checked-but-unknown words must sync too
+    // flags: 1=f14, 2=mastered, 4=placement-checked, 8=known-at-check, 16=introduced
+    w[k] = [v.st, Math.round(v.due / 864e5), v.g, v.c, v.m,
+      v.h.map(r => r[0]).join(""),
+      (v.f14 ? 1 : 0) | (v.mast ? 2 : 0) | (v.pc ? 4 : 0) | (v.pk ? 8 : 0) | (v.intro ? 16 : 0)];
+  }
+  return { id: "vocab2_state:" + deviceId, kind: "vocab2_state", name: kidName(),
+    v: 2, when: Date.now(), up: Date.now(), w,
+    locked: SC.locked, streak: SC.streak, lastDaily: SC.lastDaily, best: chBest(), upnext: UP };
+}
+function pushState(){ if(kidName()) syncPush(stateRecord()); }
+// restore from a synced vocab_state record when local state is empty
+async function maybeRestore(){
+  if(Object.keys(W).length) return;
+  try {
+    const r = await fetch(SYNC_URL, { headers: { "x-tok": SYNC_TOK } });
+    if(!r.ok) return;
+    const recs = (await r.json()).filter(x => x.kind === "vocab2_state")
+      .sort((a, b) => (b.up || 0) - (a.up || 0));
+    if(!recs.length || !recs[0].w) return;
+    const ver = recs[0].v || 1;   // v1 records predate the flag bits: all entries were introduced
+    for(const [k, a] of Object.entries(recs[0].w)){
+      if(!byWord[k] || !Array.isArray(a)) continue;
+      W[k] = { st: a[0], due: a[1] * 864e5, g: a[2], c: a[3], m: a[4],
+        h: [...String(a[5] || "")].map(ch => ch === "g" ? "got" : ch === "c" ? "close" : "missed"),
+        f14: !!(a[6] & 1), mast: !!(a[6] & 2),
+        pc: ver >= 2 ? !!(a[6] & 4) : false, pk: ver >= 2 ? !!(a[6] & 8) : false,
+        intro: ver >= 2 ? !!(a[6] & 16) : true };
+    }
+    jset(KW, W);
+    if(Array.isArray(recs[0].locked)) SC.locked = recs[0].locked.filter(w => byWord[w]);
+    if(typeof recs[0].streak === "number") SC.streak = recs[0].streak;
+    if(recs[0].lastDaily) SC.lastDaily = recs[0].lastDaily;
+    scSave();
+    if(recs[0].best) jset(KCB, recs[0].best);
+    if(Array.isArray(recs[0].upnext)){ UP = recs[0].upnext.filter(w => byWord[w]); upPrune(); }
+    homeView();
+  } catch(e){}
+}
+
+// ---------------- read aloud (copied from study.html; same prefs) -------------
+const TTS = window.speechSynthesis || null;
+let ttsVoices = [], ttsCurBtn = null;
+function ttsNormalize(t){ return String(t).replace(/\s+/g, " ").trim(); }
+function ttsPickVoice(){
+  const want = localStorage.getItem("ttsVoice") || "";
+  return ttsVoices.find(v => v.voiceURI === want)
+    || ttsVoices.find(v => v.lang === "en-US" && /Samantha/i.test(v.name))
+    || ttsVoices.find(v => v.lang && v.lang.startsWith("en"))
+    || ttsVoices[0] || null;
+}
+function ttsStop(){
+  if(TTS) TTS.cancel();
+  document.querySelectorAll(".spk.on").forEach(b => b.classList.remove("on"));
+  ttsCurBtn = null;
+}
+function speak(text, btn){
+  if(!TTS) return;
+  const wasActive = (ttsCurBtn === btn) && TTS.speaking;
+  ttsStop();
+  if(wasActive || !text.trim()) return;
+  const u = new SpeechSynthesisUtterance(ttsNormalize(text));
+  const v = ttsPickVoice(); if(v){ u.voice = v; u.lang = v.lang; }
+  u.rate = parseFloat(localStorage.getItem("ttsRate")) || 0.7;
+  u.onend = u.onerror = () => { if(btn) btn.classList.remove("on"); if(ttsCurBtn === btn) ttsCurBtn = null; };
+  if(btn) btn.classList.add("on");
+  ttsCurBtn = btn;
+  TTS.speak(u);
+}
+if(TTS){ ttsVoices = TTS.getVoices().filter(v => v.lang && v.lang.toLowerCase().startsWith("en"));
+  TTS.onvoiceschanged = () => { ttsVoices = TTS.getVoices().filter(v => v.lang && v.lang.toLowerCase().startsWith("en")); }; }
+else $("spkBtn").classList.add("hidden");
+
+// ---------------- spacing schedule --------------------------------------------
+// stages: 0 just-learned (same-day recall) -> 1:1d -> 2:3d -> 3:7d -> 4:14d ->
+// 5:30d -> 6:every 45d. Pass = up one stage; Missed = back to the 1-day stage.
+const OFFSET = { 1: 1, 2: 3, 3: 7, 4: 14, 5: 30, 6: 45 };
+const STAGE_NAME = { 0: "new today", 1: "1 day", 2: "3 days", 3: "7 days", 4: "14 days", 5: "30 days", 6: "every 45 days" };
+function dueInDays(n){ const d = new Date(); d.setHours(0,0,0,0); d.setDate(d.getDate() + n); return d.getTime(); }
+const todayStart = () => { const d = new Date(); d.setHours(0,0,0,0); return d.getTime(); };
+const todayKey = () => new Date().toDateString();
+function wordState(w){
+  return W[w] || (W[w] = { st: 0, due: 0, g: 0, c: 0, m: 0, h: [], f14: false, mast: false, intro: false });
+}
+function dueWords(){
+  return VOCAB.filter(v => W[v.w] && W[v.w].intro && W[v.w].due <= todayStart() + 863e5 - 1)
+    .map(v => v.w);
+}
+function newCandidates(){ return VOCAB.filter(v => !W[v.w] || !W[v.w].intro).map(v => v.w); }
+// auto-drop lowers to 3 but never raises a parent's smaller choice; 0 stays 0
+function effNewPerDay(){ return S.autoDrop ? Math.min(3, S.newPerDay) : S.newPerDay; }
+// "Up next" hand-picked queue (front of the line for new words)
+const KU = "vocab2_upnext";
+let UP = jget(KU, []);
+const upSave = () => jset(KU, UP);
+const upPrune = () => { UP = UP.filter(w => byWord[w] && !(W[w] && W[w].intro)); upSave(); };
+upPrune();
+function flagged(w){ const h = wordState(w).h; return h.filter(r => r === "missed").length >= 2 && h.length >= 2; }
+
+// record one answered check: updates stage/due/counters/mastery, logs attempt
+function recordAttempt(w, result, phase, advance){
+  const v = wordState(w);
+  const sb = v.st;
+  if(advance){
+    if(result === "missed"){ v.f14 = false; v.st = 1; v.due = dueInDays(1); }
+    else {
+      if(sb === 3) lockIn(w);           // passed the 7-day check at least once
+      if(sb === 4) v.f14 = true;
+      if(sb === 5 && v.f14) v.mast = true;
+      v.st = Math.min(v.st + 1, 6); v.due = dueInDays(OFFSET[v.st]);
+    }
+  }
+  v[result[0]]++;                       // g / c / m counters
+  v.h = [...v.h, result].slice(-3);
+  jset(KW, W);
+  const a = { w, ch: byWord[w].ch, t: Date.now(), r: result, sb, sa: v.st, sid: SES ? SES.id : "" };
+  const log = jget(KA, []); log.push(a); jset(KA, log);
+  if(SES) SES.answers.push({ w, ch: byWord[w].ch, r: result, sb, sa: v.st, phase });
+  return a;
+}
+
+// ---------------- scores (locked-in, streak, today's new, chapter bests) ------
+const KSC = "vocab2_score", KCA = "vocab2_chapter_attempts", KCB = "vocab2_chapter_best";
+let SC = jget(KSC, { locked: [], streak: 0, lastDaily: "", todayDay: "", todayNew: 0 });
+const scSave = () => jset(KSC, SC);
+const yesterdayKey = () => { const d = new Date(); d.setDate(d.getDate() - 1); return d.toDateString(); };
+function lockIn(w){ if(!SC.locked.includes(w)){ SC.locked.push(w); scSave(); } }  // monotone: never removed
+function bumpStreak(){
+  const dk = todayKey();
+  if(SC.lastDaily === dk) return;
+  SC.streak = SC.lastDaily === yesterdayKey() ? SC.streak + 1 : 1;
+  SC.lastDaily = dk; scSave();
+}
+const streakShown = () => (SC.lastDaily === todayKey() || SC.lastDaily === yesterdayKey()) ? SC.streak : 0;
+const chBest = () => jget(KCB, {});
+
+// ---------------- session engine ----------------------------------------------
+let SES = null;   // {id, phase, queue, i, requeue, newWords, retry, counts, activeMs, reviewMs, startedAt, lastAct, brake, teaching}
+function startSession(){
+  if(!kidName()) return;
+  SES = { id: Date.now() + "-" + Math.random().toString(36).slice(2, 7),
+    phase: "review", queue: dueWords(), i: 0, requeue: [], newWords: [], retry: [],
+    counts: { reviewed: 0, learned: 0, got: 0, close: 0, missed: 0 },
+    activeMs: 0, reviewMs: 0, startedAt: Date.now(), lastAct: Date.now(),
+    brake: false, teaching: false, answers: [] };
+  show("sess");
+  nextCard();
+}
+// active-time clock: pauses while the tab is hidden or after 2 min idle
+setInterval(() => {
+  if(!SES || document.hidden || Date.now() - SES.lastAct > 120000) return;
+  SES.activeMs += 1000;
+  if(SES.phase === "review" || SES.phase === "requeue") SES.reviewMs += 1000;
+}, 1000);
+document.addEventListener("pointerdown", () => { if(SES) SES.lastAct = Date.now(); });
+document.addEventListener("keydown", () => { if(SES) SES.lastAct = Date.now(); });
+
+const BRAKE_MS = 10 * 60 * 1000;
+function show(id){
+  ["home","sess","brake","done","words","chpick","chdone","upnext","plpick","pldone"].forEach(s => $(s).classList.toggle("hidden", s !== id));
+}
+function curWord(){ return SES.queue[SES.i]; }
+function nextCard(){
+  ttsStop();
+  const s = SES;
+  // phase transitions when the current queue is exhausted
+  while(s.i >= s.queue.length){
+    if(s.phase === "review"){
+      if(s.requeue.length){ s.phase = "requeue"; s.queue = s.requeue; s.requeue = []; s.i = 0; continue; }
+      return afterReview();
+    }
+    if(s.phase === "requeue"){
+      if(s.requeue.length){ s.queue = s.requeue; s.requeue = []; s.i = 0; continue; }
+      return afterReview();
+    }
+    if(s.phase === "learn"){ s.phase = "recall"; s.queue = [...s.newWords]; s.i = 0; continue; }
+    if(s.phase === "recall"){
+      if(s.retry.length){ s.phase = "retry"; s.queue = s.retry; s.retry = []; s.i = 0; continue; }
+      return finishSession(true);
+    }
+    if(s.phase === "retry") return finishSession(true);
+  }
+  const w = curWord(), v = byWord[w];
+  s.teaching = false;
+  if(s.phase === "learn"){
+    // introduction happens HERE, card by card
+    const st = wordState(w);
+    if(!st.intro){
+      st.intro = true; jset(KW, W);
+      UP = UP.filter(x => x !== w); upSave();
+      if(SC.todayDay !== todayKey()){ SC.todayDay = todayKey(); SC.todayNew = 0; }
+      SC.todayNew++; scSave();
+      s.counts.learned++;
+    }
+  }
+  $("phaseLbl").textContent = { review: "Review", requeue: "Review again", learn: "New word", recall: "Do you remember?", retry: "One more try" }[s.phase];
+  $("progLbl").textContent = `${s.i + 1} of ${s.queue.length}`;
+  $("progBar").style.width = `${(s.i / s.queue.length) * 100}%`;
+  $("cardCh").textContent = v.ch;
+  $("cardWord").textContent = w;
+  $("cardWord").classList.remove("defprompt");
+  const showDef = s.phase === "learn";
+  $("cardDef").textContent = v.d;
+  $("cardDef").classList.toggle("hidden", !showDef);
+  $("cardDef").classList.remove("answord");
+  $("revealRow").classList.toggle("hidden", showDef);   // graded cards can reveal
+  $("sessNote").textContent = "";
+  $("answerBtns").classList.toggle("hidden", showDef);
+  $("nextRow").classList.toggle("hidden", !showDef);
+  speak(showDef ? `${w}. ${v.d}` : w, $("spkBtn"));
+}
+// tap the card or the Show answer button to reveal (once; no un-reveal).
+// Grading still works before or after.
+function answerText(){
+  if(PL) return byWord[PL.queue[PL.i]].d;
+  if(CH){ const w = CH.queue[CH.i]; return CH.dir === "wm" ? byWord[w].d : w; }
+  if(SES) return byWord[curWord()].d;
+  return "";
+}
+function revealAnswer(){
+  // reveal is only armed while the Show-answer row is visible (graded + hidden)
+  if($("revealRow").classList.contains("hidden")) return;
+  $("cardDef").classList.remove("hidden");
+  $("revealRow").classList.add("hidden");
+  speak(answerText(), $("spkBtn"));
+}
+function answer(result){
+  const s = SES; if(!s || s.teaching) return;
+  const w = curWord();
+  const inReview = s.phase === "review" || s.phase === "requeue";
+  const advance = inReview ? s.phase === "review" : s.phase === "recall" || s.phase === "retry";
+  // recall/retry of brand-new words: any result lands at stage 1, due tomorrow
+  if(s.phase === "recall" || s.phase === "retry"){
+    const v = wordState(w); const sb = v.st;
+    v.st = 1; v.due = dueInDays(1);
+    v[result[0]]++; v.h = [...v.h, result].slice(-3); jset(KW, W);
+    const log = jget(KA, []); log.push({ w, ch: byWord[w].ch, t: Date.now(), r: result, sb, sa: 1, sid: s.id }); jset(KA, log);
+    s.answers.push({ w, ch: byWord[w].ch, r: result, sb, sa: 1, phase: s.phase });
+  } else {
+    recordAttempt(w, result, s.phase, advance);
+  }
+  if(inReview && s.phase === "review") s.counts.reviewed++;
+  s.counts[result === "got" ? "got" : result === "close" ? "close" : "missed"]++;
+  if(result === "missed"){
+    // quick reteach: show + read the definition, then Next
+    const wasRevealed = !$("cardDef").classList.contains("hidden");
+    s.teaching = true;
+    $("cardDef").classList.remove("hidden");
+    $("revealRow").classList.add("hidden");
+    $("sessNote").textContent = "Let's look at it together.";
+    $("answerBtns").classList.add("hidden");
+    $("nextRow").classList.remove("hidden");
+    if(!wasRevealed) speak(`${w}. ${byWord[w].d}`, $("spkBtn"));
+    if(s.phase === "review") s.requeue.push(w);
+    if(s.phase === "recall") s.retry.push(w);
+    return;
+  }
+  s.i++; nextCard();
+}
+function afterReview(){
+  const s = SES;
+  if(s.reviewMs >= BRAKE_MS){
+    s.brake = true;
+    show("brake");     // streak day is decided by which brake button gets tapped
+    return;
+  }
+  evalBrakeDay("ok");
+  startLearn();
+}
+function startLearn(){
+  const s = SES;
+  const n = effNewPerDay();
+  upPrune();
+  // Up next first (in queue order), then book order, skipping queued words.
+  // intro is NOT set here — each word is introduced only when its learn card
+  // is actually shown, so a stopped session leaves unseen words un-introduced.
+  const fromQueue = UP.slice(0, n);
+  const fill = newCandidates().filter(w => !UP.includes(w)).slice(0, Math.max(0, n - fromQueue.length));
+  s.newWords = [...fromQueue, ...fill];
+  if(!s.newWords.length) return finishSession(true);
+  s.phase = "learn"; s.queue = [...s.newWords]; s.i = 0;
+  nextCard();
+}
+// brake streaks, evaluated once per day. mode: "brake" | "ok" | "override".
+// An overridden day ("Learn anyway") is logged on the session record but
+// counts toward NEITHER streak.
+function evalBrakeDay(mode){
+  if(S.lastEval === todayKey()) return;
+  S.lastEval = todayKey();
+  if(mode === "brake"){ S.brakeStreak++; S.okStreak = 0; }
+  else if(mode === "ok"){ S.okStreak++; S.brakeStreak = 0; }
+  if(S.brakeStreak >= 3) S.autoDrop = true;
+  if(S.autoDrop && S.okStreak >= 3) S.autoDrop = false;
+  jset(KS, S);
+}
+function finishSession(finished){
+  const s = SES; if(!s) return;
+  ttsStop();
+  const secs = Math.round(s.activeMs / 1000);
+  const rec = { id: s.id, kind: "vocab2", name: kidName(), deck: "Vocab 2nd grade",
+    when: s.startedAt, up: Date.now(), finished,
+    total: s.answers.length, right: s.counts.got,
+    reviewed: s.counts.reviewed, learned: s.counts.learned,
+    got: s.counts.got, close: s.counts.close, missed: s.counts.missed,
+    durationSecs: secs, brake: s.brake, ...(s.override ? { override: true } : {}), answers: s.answers };
+  if(finished) bumpStreak();
+  if(kidName()){ syncPush(rec); pushState(); }
+  $("doneScore").textContent = `${s.counts.got + s.counts.close} / ${s.counts.got + s.counts.close + s.counts.missed}`;
+  $("doneCounts").textContent = `Reviewed ${s.counts.reviewed} · New ${s.counts.learned} · Got it ${s.counts.got} · Close ${s.counts.close} · Missed ${s.counts.missed}`;
+  $("doneTime").textContent = `Time: ${Math.floor(secs / 60)}m ${secs % 60}s${s.brake ? " · review hit the 10-minute brake" : ""}`;
+  SES = null;
+  show("done");
+}
+
+// ---------------- placement check ("Check what she knows") ---------------------
+// Got it = already known: introduced at the 7-day stage, due in 7 days — the
+// normal engine takes over from there (locked-in only on the real 7-day pass).
+// Close/Missed words stay un-introduced and get taught normally later. Every
+// graded word is marked placement-checked (pc) so it isn't asked again.
+// Placement never touches Today's-new-words, the streak, or newPerDay.
+const KPA = "vocab2_placement_attempts";
+let PL = null;   // active check: {rid, ch, queue, i, known, toLearn, startedAt, answers}
+const plCandidates = ch => VOCAB.filter(v => v.ch === ch && !(W[v.w] && (W[v.w].intro || W[v.w].pc))).map(v => v.w);
+function plPickView(){
+  show("plpick");
+  const box = $("plList"); box.innerHTML = "";
+  CHAPTERS.forEach(ch => {
+    const n = plCandidates(ch).length;
+    const b = document.createElement("button");
+    b.innerHTML = `${ch}<br><span class="small">${n} not checked yet</span>`;
+    b.disabled = n === 0;
+    b.onclick = () => startPlacement(ch);
+    box.appendChild(b);
+  });
+}
+function startPlacement(ch){
+  if(!kidName()) return;
+  const queue = plCandidates(ch);
+  if(!queue.length) return;
+  PL = { rid: Date.now() + "-" + Math.random().toString(36).slice(2, 7), ch,
+    queue, i: 0, known: [], toLearn: [], startedAt: Date.now(), answers: [] };
+  show("sess");
+  plCard();
+}
+function plCard(){
+  ttsStop();
+  const p = PL;
+  if(p.i >= p.queue.length) return plFinish(true);
+  const w = p.queue[p.i], v = byWord[w];
+  $("phaseLbl").textContent = `Check what she knows · ${p.ch}`;
+  $("progLbl").textContent = `${p.i + 1} of ${p.queue.length}`;
+  $("progBar").style.width = `${(p.i / p.queue.length) * 100}%`;
+  $("cardCh").textContent = v.ch;
+  $("cardWord").textContent = w;
+  $("cardWord").classList.remove("defprompt");
+  $("cardDef").textContent = v.d;
+  $("cardDef").classList.add("hidden");
+  $("cardDef").classList.remove("answord");
+  $("revealRow").classList.remove("hidden");
+  $("sessNote").textContent = "";
+  $("answerBtns").classList.remove("hidden");
+  $("nextRow").classList.add("hidden");
+  speak(w, $("spkBtn"));
+}
+function plAnswer(result){
+  const p = PL; if(!p) return;
+  const w = p.queue[p.i], v = wordState(w);
+  v.pc = true;
+  let r;
+  if(result === "got"){
+    r = "placement_known";
+    v.pk = true; v.intro = true; v.st = 3; v.due = dueInDays(7);   // 7-day stage
+    UP = UP.filter(x => x !== w); upSave();
+    p.known.push(w);
+  } else {
+    r = result === "close" ? "placement_close" : "placement_missed";
+    p.toLearn.push(w);
+  }
+  jset(KW, W);
+  const log = jget(KPA, []); log.push({ w, ch: byWord[w].ch, t: Date.now(), r, rid: p.rid }); jset(KPA, log);
+  p.answers.push({ w, r });
+  p.i++; plCard();
+}
+function plFinish(finished){
+  const p = PL; if(!p) return;
+  ttsStop();
+  const secs = Math.round((Date.now() - p.startedAt) / 1000);
+  const rec = { id: p.rid, kind: "vocab2_placement", name: kidName(), deck: "Vocab 2nd grade",
+    ch: p.ch, when: p.startedAt, up: Date.now(), finished,
+    total: p.queue.length, checked: p.answers.length, known: p.known.length,
+    knownWords: p.known, toLearn: p.toLearn, durationSecs: secs, answers: p.answers };
+  if(kidName()){ syncPush(rec); pushState(); }
+  $("plScore").textContent = `Already knew: ${p.known.length} of ${p.answers.length}`;
+  $("plKnown").textContent = p.known.length ? p.known.join(", ") : "—";
+  $("plToLearn").textContent = p.toLearn.length ? p.toLearn.join(", ") : "—";
+  PL = null;
+  show("pldone");
+}
+
+// ---------------- chapter practice (never touches the daily schedule) ---------
+let CH = null;   // active chapter run; cleared on EVERY exit path (done, stop, home)
+const DIR_LABEL = { wm: "word → meaning", mw: "meaning → word" };
+let chLast = null;   // {ch, dir, missed} for "Practice missed words only"
+function chPickView(){
+  show("chpick");
+  const box = $("chList"); box.innerHTML = "";
+  CHAPTERS.forEach(ch => {
+    const b = document.createElement("button");
+    b.textContent = ch; b.dataset.ch = ch;
+    b.onclick = () => {
+      $("chpick").dataset.ch = ch;
+      $("chDirRow").classList.remove("hidden");
+      [...box.children].forEach(x => x.setAttribute("aria-pressed", x === b));
+    };
+    box.appendChild(b);
+  });
+  $("chDirRow").classList.add("hidden");
+}
+function startChapterRun(ch, dir, words, sub){
+  if(!kidName()) return;
+  CH = { rid: Date.now() + "-" + Math.random().toString(36).slice(2, 7),
+    ch, dir, sub: !!sub, queue: shuffle([...words]), i: 0,
+    total: words.length, cleared: 0, firstTry: 0,
+    tries: {}, missedEver: [], needsWork: [],
+    startedAt: Date.now(), answers: [], teaching: false };
+  show("sess");
+  chCard();
+}
+function chCard(){
+  ttsStop();
+  const c = CH;
+  if(c.i >= c.queue.length) return chFinish(true);
+  const w = c.queue[c.i], v = byWord[w];
+  c.teaching = false;
+  $("phaseLbl").textContent = `${c.ch} · ${DIR_LABEL[c.dir]}`;
+  $("progLbl").textContent = `${c.cleared} of ${c.total} cleared`;
+  $("progBar").style.width = `${(c.cleared / c.total) * 100}%`;
+  $("cardCh").textContent = c.ch;
+  const prompt = c.dir === "wm" ? w : v.d;
+  $("cardWord").textContent = prompt;
+  $("cardWord").classList.toggle("defprompt", c.dir === "mw");
+  $("cardDef").textContent = c.dir === "wm" ? v.d : w;
+  $("cardDef").classList.add("hidden");
+  $("cardDef").classList.toggle("answord", c.dir === "mw");   // revealed word at word size
+  $("revealRow").classList.remove("hidden");
+  $("sessNote").textContent = "";
+  $("answerBtns").classList.remove("hidden");
+  $("nextRow").classList.add("hidden");
+  speak(prompt, $("spkBtn"));
+}
+function chAnswer(result){
+  const c = CH; if(!c || c.teaching) return;
+  const w = c.queue[c.i];
+  c.tries[w] = (c.tries[w] || 0) + 1;
+  const tryN = c.tries[w];
+  const log = jget(KCA, []);
+  log.push({ w, ch: c.ch, dir: c.dir, r: result, try: tryN, t: Date.now(), rid: c.rid });
+  jset(KCA, log);
+  c.answers.push({ w, r: result, try: tryN });
+  if(tryN === 1 && result !== "missed") c.firstTry++;
+  if(result === "missed"){
+    if(!c.missedEver.includes(w)) c.missedEver.push(w);
+    const wasRevealed = !$("cardDef").classList.contains("hidden");
+    c.teaching = true;
+    $("cardDef").classList.remove("hidden");
+    $("revealRow").classList.add("hidden");
+    $("answerBtns").classList.add("hidden");
+    $("nextRow").classList.remove("hidden");
+    if(!wasRevealed) speak(c.dir === "wm" ? byWord[w].d : w, $("spkBtn"));
+    if(tryN >= 3){   // loop cap: teach, flag, and stop requeueing this word
+      c.needsWork.push(w); c.cleared++;
+      $("sessNote").textContent = "We'll flag this one to work on.";
+    } else {
+      c.queue.push(w);
+      $("sessNote").textContent = "Let's look at it together.";
+    }
+    return;
+  }
+  c.cleared++;
+  c.i++; chCard();
+}
+function chFinish(finished){
+  const c = CH; if(!c) return;
+  ttsStop();
+  const secs = Math.round((Date.now() - c.startedAt) / 1000);
+  const rec = { id: c.rid, kind: "vocab2_chapter", name: kidName(), deck: "Vocab 2nd grade",
+    ch: c.ch, dir: DIR_LABEL[c.dir], when: c.startedAt, up: Date.now(), finished,
+    total: c.total, firstTry: c.firstTry, cleared: c.cleared,
+    missedEver: c.missedEver, needsWork: c.needsWork,
+    durationSecs: secs, sub: c.sub || undefined, answers: c.answers };
+  if(kidName()) syncPush(rec);
+  if(!finished){ CH = null; show("home"); homeView(); return; }   // stopped: log/sync only, never a best
+  // bests: FINISHED FULL-chapter runs only
+  const full = !c.sub && c.total === VOCAB.filter(v => v.ch === c.ch).length;
+  let bestLine = "";
+  if(full){
+    const key = c.ch + "|" + c.dir, best = chBest();
+    if(c.firstTry > (best[key] ?? -1)){
+      best[key] = c.firstTry; jset(KCB, best); pushState();
+      bestLine = "New best!";
+    } else bestLine = `Best: ${best[key]}/${c.total} — try again to beat it.`;
+  }
+  $("chScore").textContent = `${c.firstTry} / ${c.total}`;
+  $("chBestLine").textContent = bestLine;
+  $("chMissed").textContent = c.missedEver.length
+    ? "Missed at least once: " + c.missedEver.join(", ")
+    : "First try on every word — amazing!";
+  $("chNeeds").textContent = c.needsWork.length ? "Needs work: " + c.needsWork.join(", ") : "";
+  $("chTime").textContent = `Time: ${Math.floor(secs / 60)}m ${secs % 60}s`;
+  $("chRetryBtn").classList.toggle("hidden", c.missedEver.length === 0);
+  chLast = { ch: c.ch, dir: c.dir, missed: [...c.missedEver] };
+  CH = null;   // mode flag cleared before leaving the run screen
+  show("chdone");
+}
+
+// ---------------- home / words views ------------------------------------------
+function homeView(){
+  const name = kidName();
+  $("nameGate").classList.toggle("hidden", !!name);
+  $("homeBody").classList.toggle("hidden", !name);
+  if(!name) return;
+  const due = dueWords().length, fresh = newCandidates().length;
+  $("dueLine").textContent = `${due} word${due === 1 ? "" : "s"} to review today · ${fresh} not learned yet`;
+  const todayN = SC.todayDay === todayKey() ? SC.todayNew : 0;
+  const goal = effNewPerDay();
+  const streak = streakShown();
+  upPrune();
+  $("scoreLines").innerHTML =
+    `Today: ${todayN} of ${goal} new words${todayN >= goal && goal > 0 ? " ✓" : ""}<br>` +
+    `Up next: ${UP.length} word${UP.length === 1 ? "" : "s"}<br>` +
+    `Streak: ${streak} day${streak === 1 ? "" : "s"}<br>` +
+    `Words locked in: ${SC.locked.length}`;
+  $("autoNote").classList.toggle("hidden", !S.autoDrop);
+  $("autoNote").textContent = "Review has been running long — new words are set to 3 a day for now. Back to normal after 3 quick review days.";
+  $("newNum").textContent = S.newPerDay;
+}
+// ---------------- Up next screen ----------------------------------------------
+function upView(){
+  show("upnext");
+  upPrune();
+  const q = $("upQueue");
+  q.innerHTML = UP.length ? "" : '<p class="small">Nothing queued — new words come in book order.</p>';
+  UP.forEach((w, i) => {
+    const div = document.createElement("div"); div.className = "wrow";
+    div.innerHTML = `<button class="upx" data-w="${w}">×</button><b>${i + 1}. ${w}</b><br><span class="meta">${byWord[w].d}</span>`;
+    q.appendChild(div);
+  });
+  const p = $("upPicker"); p.innerHTML = "";
+  for(const ch of CHAPTERS){
+    const words = VOCAB.filter(v => v.ch === ch && !(W[v.w] && W[v.w].intro));
+    if(!words.length) continue;
+    const h = document.createElement("h2");
+    h.innerHTML = `${ch} <button class="upall" data-ch="${ch}">Add whole chapter</button>`;
+    p.appendChild(h);
+    const grid = document.createElement("div"); grid.className = "row";
+    words.forEach(v => {
+      const b = document.createElement("button");
+      b.className = "upw"; b.dataset.w = v.w;
+      b.textContent = UP.includes(v.w) ? `${v.w} ✓` : v.w;
+      if(UP.includes(v.w)) b.setAttribute("aria-pressed", "true");
+      grid.appendChild(b);
+    });
+    p.appendChild(grid);
+  }
+}
+document.addEventListener("click", e => {
+  const x = e.target.closest(".upx");
+  if(x){ UP = UP.filter(w => w !== x.dataset.w); upSave(); pushState(); upView(); return; }
+  const all = e.target.closest(".upall");
+  if(all){
+    VOCAB.filter(v => v.ch === all.dataset.ch && !(W[v.w] && W[v.w].intro) && !UP.includes(v.w))
+      .forEach(v => UP.push(v.w));
+    upSave(); pushState(); upView(); return;
+  }
+  const b = e.target.closest(".upw");
+  if(b){
+    const w = b.dataset.w;
+    UP.includes(w) ? UP = UP.filter(x2 => x2 !== w) : UP.push(w);
+    upSave(); pushState(); upView();
+  }
+});
+// List view: same word data rendered as a numbered study list (no stage/badges)
+function wordsList(){
+  const box = $("wordList"); box.innerHTML = "";
+  let n = 0;
+  for(const ch of CHAPTERS){
+    const h = document.createElement("h2"); h.textContent = ch; box.appendChild(h);
+    VOCAB.filter(v => v.ch === ch).forEach(v => {
+      n++;
+      const p = document.createElement("p"); p.className = "lline";
+      p.innerHTML = `${n}. <b>${v.w}</b> — ${v.d}`;
+      box.appendChild(p);
+    });
+  }
+}
+function wordsView(){
+  show("words");
+  let view = "cards";
+  try { view = localStorage.getItem("vocab2_view") || "cards"; } catch(e){}
+  [...$("viewPick").children].forEach(b => b.setAttribute("aria-pressed", b.dataset.v === view));
+  if(view === "list") return wordsList();
+  const chAgg = {};
+  jget(KCA, []).forEach(a => {
+    const o = chAgg[a.w] = chAgg[a.w] || { g: 0, m: 0 };
+    if(a.r === "got") o.g++; else if(a.r === "missed") o.m++;
+  });
+  const box = $("wordList"); box.innerHTML = "";
+  for(const ch of CHAPTERS){
+    const h = document.createElement("h2"); h.textContent = ch; box.appendChild(h);
+    VOCAB.filter(v => v.ch === ch).forEach(v => {
+      const s = W[v.w];
+      const div = document.createElement("div"); div.className = "wrow";
+      const tags = (s && s.mast ? '<span class="tag mast">Mastered</span>' : "") +
+        (s && s.pk ? '<span class="tag mast">known at check</span>' : "") +
+        (s && s.intro && flagged(v.w) ? '<span class="tag flag">Needs extra teaching</span>' : "");
+      const meta = s && s.intro
+        ? `stage: ${STAGE_NAME[s.st]} · next: ${new Date(s.due).toLocaleDateString()} · got ${s.g} / close ${s.c} / missed ${s.m}`
+        : "not learned yet";
+      const ca = chAgg[v.w];
+      const chLine = ca ? `<br><span class="meta">chapter practice: ${ca.g} got / ${ca.m} missed</span>` : "";
+      div.innerHTML = `<b>${v.w}</b>${tags}<br><span class="meta">${v.d}</span><br><span class="meta">${meta}</span>${chLine}`;
+      box.appendChild(div);
+    });
+  }
+}
+
+// ---------------- wiring --------------------------------------------------------
+$("nameSave").onclick = () => {
+  const n = $("nameIn").value.trim();
+  if(!n) return;
+  localStorage.setItem(KN, n);
+  homeView();
+};
+$("startBtn").onclick = startSession;
+$("wordsBtn").onclick = wordsView;
+$("viewPick").addEventListener("click", e => {
+  const b = e.target.closest("button"); if(!b) return;
+  try { localStorage.setItem("vocab2_view", b.dataset.v); } catch(e2){}
+  wordsView();
+});
+$("wordsBack").onclick = () => { show("home"); homeView(); };
+$("revealBtn").onclick = revealAnswer;
+$("cardBox").addEventListener("click", e => {
+  if(e.target.closest(".spk")) return;   // the speaker button is its own control
+  revealAnswer();
+});
+$("newMinus").onclick = () => { S.newPerDay = Math.max(0, S.newPerDay - 1); jset(KS, S); homeView(); };
+$("newPlus").onclick = () => { S.newPerDay = Math.min(15, S.newPerDay + 1); jset(KS, S); homeView(); };
+$("upBtn").onclick = upView;
+$("upBack").onclick = () => { show("home"); homeView(); };
+$("upClear").onclick = () => { UP = []; upSave(); pushState(); upView(); };
+$("brakeLearn").onclick = () => {
+  if(!SES) return;
+  SES.override = true;
+  evalBrakeDay("override");
+  show("sess");
+  startLearn();
+};
+// mode dispatch: chapter run when CH is set, daily session otherwise. CH is
+// cleared on every exit (done, stop, home) and is in-memory only, so a reload
+// always lands back in daily mode.
+$("gotBtn").onclick = () => PL ? plAnswer("got") : CH ? chAnswer("got") : answer("got");
+$("closeBtn").onclick = () => PL ? plAnswer("close") : CH ? chAnswer("close") : answer("close");
+$("missBtn").onclick = () => PL ? plAnswer("missed") : CH ? chAnswer("missed") : answer("missed");
+$("nextBtn").onclick = () => {
+  if(CH){ CH.teaching = false; CH.i++; chCard(); return; }
+  const s = SES; if(!s) return; s.teaching = false; s.i++; nextCard();
+};
+$("spkBtn").onclick = () => {
+  if(PL){
+    const w = PL.queue[PL.i], revealed = !$("cardDef").classList.contains("hidden");
+    speak(revealed ? `${w}. ${byWord[w].d}` : w, $("spkBtn"));
+    return;
+  }
+  if(CH){
+    const w = CH.queue[CH.i], revealed = !$("cardDef").classList.contains("hidden");
+    const prompt = CH.dir === "wm" ? w : byWord[w].d;
+    speak(revealed ? `${prompt}. ${CH.dir === "wm" ? byWord[w].d : w}` : prompt, $("spkBtn"));
+    return;
+  }
+  if(!SES) return;
+  const w = curWord(), defShown = !$("cardDef").classList.contains("hidden");
+  speak(defShown ? `${w}. ${byWord[w].d}` : w, $("spkBtn"));
+};
+$("exitBtn").onclick = () => { PL ? plFinish(false) : CH ? chFinish(false) : finishSession(false); };
+$("plBtn").onclick = plPickView;
+$("plPickBack").onclick = () => { PL = null; show("home"); homeView(); };
+$("plAgain").onclick = plPickView;
+$("plDone").onclick = () => { show("home"); homeView(); };
+$("chapterBtn").onclick = chPickView;
+$("chPickBack").onclick = () => { CH = null; show("home"); homeView(); };
+$("dirWM").onclick = () => { const ch = $("chpick").dataset.ch; if(ch) startChapterRun(ch, "wm", VOCAB.filter(v => v.ch === ch).map(v => v.w)); };
+$("dirMW").onclick = () => { const ch = $("chpick").dataset.ch; if(ch) startChapterRun(ch, "mw", VOCAB.filter(v => v.ch === ch).map(v => v.w)); };
+$("chRetryBtn").onclick = () => { if(chLast && chLast.missed.length) startChapterRun(chLast.ch, chLast.dir, chLast.missed, true); };
+$("chDoneHome").onclick = () => { CH = null; show("home"); homeView(); };
+$("brakeGo").onclick = () => { evalBrakeDay("brake"); finishSession(true); };
+$("doneHome").onclick = () => { show("home"); homeView(); };
+
+homeView();
+maybeRestore();
+</script>
+</body>
+</html>

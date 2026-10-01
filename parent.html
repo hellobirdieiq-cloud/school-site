@@ -83,6 +83,9 @@ function detailHtml(r){
       <span class="mk">${x.n} ${x.right?'✓':'✗'}</span>
       <span class="q">${esc(x.text)}</span>${x.fb ? ` <span class="fb">— ${esc(x.fb)}</span>` : ''}</div>`).join("");
   }
+  // vocab2 (2nd grade) kinds render exactly like their vocab counterparts
+  if(String(r.kind || "").startsWith("vocab2"))
+    return detailHtml({ ...r, kind: r.kind.replace("vocab2", "vocab") });
   if(r.kind === "vocab_placement"){
     if(!r.answers || !r.answers.length) return '<div class="nodetail">no detail saved</div>';
     return r.answers.map((a, i) => `<div class="qline ${a.r === "placement_known" ? "" : "bad"}">
@@ -118,15 +121,17 @@ function render(){
   const shown = rows.filter(r => !who || r.name === who);
   if(!shown.length){ $("list").innerHTML = '<p class="small">No runs yet.</p>'; return; }
   $("list").innerHTML = shown.map(r => {
+    if(String(r.kind || "").startsWith("vocab2")) r = { ...r, kind: r.kind.replace("vocab2", "vocab"), v2: true };
+    const vlbl = r.v2 ? "Vocab 2nd grade" : "Vocab";
     const isNouns = r.kind === "nouns", isPrayer = r.kind === "prayer", isVocab = r.kind === "vocab",
       isChap = r.kind === "vocab_chapter", isPlace = r.kind === "vocab_placement";
     const done = isPrayer ? (r.reciteCount ?? 0)
       : isNouns ? (r.answered ?? r.total) : (r.answers ? r.answers.length : 0);
     const label = isPrayer ? `${esc(r.title)} — memorize`
       : isNouns ? esc(r.deck)
-      : isVocab ? "Vocab Studying · daily session"
-      : isChap ? `Vocab · ${esc(r.ch)} · ${esc(r.dir)}${r.sub ? " · missed-only" : ""}`
-      : isPlace ? `Vocab placement · ${esc(r.ch)}` : `${esc(r.deck)} · ${r.n} choices`;
+      : isVocab ? `${r.v2 ? "Vocab 2nd grade" : "Vocab Studying"} · daily session`
+      : isChap ? `${vlbl} · ${esc(r.ch)} · ${esc(r.dir)}${r.sub ? " · missed-only" : ""}`
+      : isPlace ? `${vlbl} placement · ${esc(r.ch)}` : `${esc(r.deck)} · ${r.n} choices`;
     const pct = done ? Math.round(r.right / done * 100) : 0;
     const status = isPrayer
       ? `<span class="${r.reviewStage === "learned" ? "ok" : (r.dueAt && Date.now() >= r.dueAt) ? "live" : ""}">${done}/${r.total} groups at Recite · ${prayerStatus(r)}</span>`
@@ -165,7 +170,7 @@ async function pull(){
   try {
     const r = await fetch(SYNC_URL, { headers: { "x-tok": SYNC_TOK } });
     if(!r.ok) throw new Error(r.status);
-    rows = (await r.json()).filter(x => x.kind !== "vocab_state");
+    rows = (await r.json()).filter(x => x.kind !== "vocab_state" && x.kind !== "vocab2_state");
     rows.sort((a, b) => (b.when || 0) - (a.when || 0));
     $("stamp").textContent = "updated " + new Date().toLocaleTimeString();
     render();
