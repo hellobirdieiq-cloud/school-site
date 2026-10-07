@@ -125,6 +125,7 @@
   #tChoices button{font-size:19px;padding:12px 18px}
   #tChoices button.right{background:var(--go-bg);border-color:var(--go)}
   #tChoices button.wrong{background:var(--no-bg);border-color:var(--no)}
+  #tChoices button.mcopt{flex:1 1 100%;text-align:left;border-color:var(--line)}
   /* Continents & Oceans map quiz */
   #mapWrap{margin:8px 0}
   #mapWrap svg{width:100%;height:auto;display:block;border-radius:12px;background:#101c30}
@@ -1602,6 +1603,39 @@ const PA_SETS = [
     ["The girls enjoyed the swim even though it was short.","it","swim"]
   ]}
 ];
+// multiple-choice set: [question, correct answer, [fixed options]] — options
+// are shuffled at render time; grading reuses the classify engine
+const ROSARY_SET = { k: 1, label: "Rosary Quiz", type: "mc", section: "Religion",
+  sub: "the Rosary — 28 questions", sentences: [
+  ["These mysteries are about Mary's joys with Jesus as a child","Joyful",["Joyful","Luminous","Glorious","Sorrowful"]],
+  ["What date is The Feast of Our Lady of the Rosary?","7 October",["7 May","25 December","7 October","31 October"]],
+  ["These mysteries are about Jesus's suffering and death on the cross","Sorrowful",["Sorrowful","Glorious","Luminous","Joyful"]],
+  ["These mysteries are about Jesus's glory (ascension) and Mary's holiness (assumption to heaven)","Glorious",["Joyful","Luminous","Glorious","Sorrowful"]],
+  ["These mysteries are about the preaching, miracles and ministry of Jesus.","Luminous",["Glorious","Luminous","Sorrowful","Joyful"]],
+  ["How many Hail Mary prayers are in a decade of the Rosary?","10",["10","15","100","50"]],
+  ["How many different categories of mysteries are there in the rosary?","Four",["Four","Ten","Five","Six"]],
+  ["How many mysteries are prayed in one Rosary?","5",["28","8","6","5"]],
+  ["How many mysteries of the rosary are there in total?","20",["20","15","30","4"]],
+  ["When is the month of the Holy Rosary?","October",["September","November","October"]],
+  ["Which mysteries are prayed on Thursday?","Luminous",["Luminous","Sorrowful","Glorious","Joyful"]],
+  ["Which set of Mysteries are prayed on Tuesdays and Fridays?","Sorrowful",["Luminous","Glorious","Joyful","Sorrowful"]],
+  ["What Mysteries are prayed on Wednesday and Sunday","Glorious Mysteries",["Glorious Mysteries","Luminous Mysteries","Joyful Mysteries","Sorrowful Mysteries"]],
+  ["What Mysteries are prayed on Monday and Saturday","Joyful Mysteries",["Sorrowful Mysteries","Joyful Mysteries","Luminous Mysteries","Glorious Mysteries"]],
+  ["The very last thing prayed on the Rosary on the medal bead is the:","Hail Holy Queen",["Nicene Creed","Our Father","Hail Holy Queen","Hail Mary"]],
+  ["Who instituted the Luminous Mysteries?","St. Pope John Paul II",["St. Francis","Pope Benedict","Pope Francis","St. Pope John Paul II"]],
+  ["Mary gave the Rosary to ____","St. Dominic",["St. Padre Pio","St. Therese of Lisieux","St. Dominic","St. Louis de Montfort"]],
+  ["This prayer is prayed on the crucifix or cross of a Rosary:","The Apostles' Creed",["The Our Father","The Glory Be","The Hail Holy Queen","The Apostles' Creed"]],
+  ["Who do we honor when we pray the Rosary?","Mother Mary",["The Saints","The angels","St. Dominic","Mother Mary"]],
+  ["Whose life do we meditate on while praying the rosary?","Jesus",["The angels","St. Dominic","Mother Mary","Jesus"]],
+  ["What year were the Luminous Mysteries instituted?","2002",["1999","2004","2006","2002"]],
+  ["What do you pray first when you start the Rosary?","Sign of the Cross",["Hail Mary","Sign of the Cross","Our Father","Glory Be"]],
+  ["Which comes right after the Sign of the Cross?","Apostles' Creed",["Our Father","Hail Mary","Apostles' Creed","Glory Be"]],
+  ["How many Hail Marys are prayed on the beads near the cross, before the circle?","3",["1","3","5","10"]],
+  ["What prayer is said on the big single beads?","Our Father",["Hail Mary","Glory Be","Our Father","Apostles' Creed"]],
+  ["What prayer is said on the small beads?","Hail Mary",["Our Father","Hail Mary","Hail Holy Queen","Glory Be"]],
+  ["What is prayed after each group of Hail Marys?","Glory Be & Fatima Prayer",["Our Father","Apostles' Creed","Glory Be & Fatima Prayer","Hail Holy Queen"]],
+  ["How many groups of 10 Hail Marys (decades) are in the circle?","5",["3","4","5","10"]],
+]};
 // ---------- END TAP QUIZ DATA ----------
 
 
@@ -1891,6 +1925,7 @@ function buildQuick(){
     decks.forEach(name => grid.appendChild(makeDeckBtn(name)));
     if(cls === "Geography") grid.appendChild(makeMapBtn());
     FLIPCARDS.filter(f => f.section === cls).forEach(f => grid.appendChild(makeFlipBtn(f)));
+    if(cls === "Religion") grid.appendChild(makeTapBtn(ROSARY_SET));
     if(cls === "Religion" && PRAYERS.length){
       // Religion splits in two: flashcards/quizzes up top, prayers below
       const det = grid.parentElement;
@@ -3007,7 +3042,7 @@ function tapBadge(set){
 }
 function makeTapBtn(set){
   const b = document.createElement("button");
-  tagClass(b, "English");
+  tagClass(b, set.section || "English");
   b.dataset.tapset = set.label;
   b.innerHTML = `${set.label}<small>${set.sub || "tap the pronoun in the sentence"}</small>` + tapBadge(set);
   b.onclick = () => startTapSet(set);
@@ -3059,7 +3094,8 @@ function beginTapRun(set, hints){
       name: state.name.trim(), deck: set.label, total: set.sentences.length,
       quiz: set.type === "classify"
         ? `name the pronoun type · ${hints ? "hints" : "no hints"}`
-        : set.type === "pa" ? "pronoun & antecedent" : "tap the pronoun",
+        : set.type === "pa" ? "pronoun & antecedent"
+        : set.type === "mc" ? "pick the answer" : "tap the pronoun",
       right: 0, answered: 0, finished: false, when: Date.now(), sentences: [] } };
   saveTap();
   $("setup").classList.add("hidden");
@@ -3072,15 +3108,19 @@ function tRender(){
   const [text] = tItem();
   const classify = TQ.set.type === "classify";
   const pa = TQ.set.type === "pa";
+  const mc = TQ.set.type === "mc";
   if(pa) $("tHint").innerHTML =
     '<span class="u1">1 underline</span> = pronoun<br><span class="u2">2 underlines</span> = antecedent';
-  else $("tHint").textContent = classify
-    ? "What kind of pronoun is the yellow word?"
+  else $("tHint").textContent = mc ? "Tap the right answer."
+    : classify ? "What kind of pronoun is the yellow word?"
     : "Tap the indefinite pronoun in the sentence.";
-  $("tProgressText").textContent = `${TQ.set.label} — Sentence ${TQ.i + 1} of ${TQ.order.length}`;
+  $("tProgressText").textContent = `${TQ.set.label} — ${mc ? "Question" : "Sentence"} ${TQ.i + 1} of ${TQ.order.length}`;
   $("tProgressBar").style.width = `${(TQ.i / TQ.order.length) * 100}%`;
   const box = $("tSentence"); box.innerHTML = ""; delete box.dataset.done;
-  if(classify){
+  if(mc){
+    box.dataset.done = "1";   // the question text isn't tappable
+    box.textContent = text;
+  } else if(classify){
     box.dataset.done = "1";   // words aren't tappable in classify mode
     box.innerHTML = text.replace(/\[(.+?)\]/, '<span class="qword">$1</span>');
   } else if(pa){
@@ -3107,7 +3147,16 @@ function tRender(){
   $("tCheckBtn").classList.toggle("hidden", !pa);
   $("tCheckBtn").disabled = true;
   const ch = $("tChoices"); ch.innerHTML = "";
-  if(classify){
+  if(mc){
+    // per-question fixed options, shuffled each time; graded by tClassify
+    const item = tItem();
+    shuffle([...item[2]]).forEach(o => {
+      const b = document.createElement("button");
+      b.className = "mcopt"; b.dataset.t = o; b.textContent = o;
+      b.onclick = () => tClassify(o, b);
+      ch.appendChild(b);
+    });
+  } else if(classify){
     const opts = TQ.hints
       ? [["DEM","points 👉"], ["REL","connects 🔗"], ["INTER","question ❓"]]
       : [["DEM","Demonstrative"], ["REL","Relative"], ["INTER","Interrogative"]];
