@@ -10,7 +10,7 @@
     --ink:#eef1f8; --paper:#0f1626; --line:#2c3852; --soft:#1a2338;
     --go:#4fd68a; --go-bg:#153826; --no:#ff7b72; --no-bg:#3a1c1c; --mark:#ffd23f;
     --c-geo:#5aa9ff; --c-sci:#4fd68a; --c-rel:#c78bff; --c-other:#9aa6c2;
-    --c-eng:#ffb86b; --c-spa:#45d1c2;
+    --c-eng:#ffb86b; --c-spa:#45d1c2; --c-read:#ff8fab;
   }
   *{box-sizing:border-box}
   html,body{margin:0;background:var(--paper);color:var(--ink);
@@ -996,6 +996,36 @@ const DECKS = {
     ["wholesome","(adj.) healthy; morally and socially sound and good; helping to bring about or preserve good health Syn: nourishing, beneficial Ant: harmful, unhealthy, baneful"],
     ["wistful","(adj.) full of melancholy yearning or longing, sad, pensive Ant: happy, contented, satisfied"]
   ],
+  "SFSS Crossword": [
+    ["Anna","One of Francis's sisters"],
+    ["Pilgrimage","A religious journey"],
+    ["Floor","Where Francis often slept in the hospital"],
+    ["Throng","Swarm of people"],
+    ["Five","How many hundred miles did Francis walk to college?"],
+    ["Convert","One who is persuaded to change his/her beliefs"],
+    ["Castle Xavier","What is the name of Francis's home?"],
+    ["Saint Barbara","College where Francis and Peter attend"],
+    ["Guerrilla","Irregular soldier who uses surprise tactics to fight"],
+    ["Sermon","A religious talk given during Mass"],
+    ["Leper","A person with a flesh-eating disease"],
+    ["Cassock","Long gown worn by clergymen"],
+    ["Doña Maria","Francis's beloved mother"],
+    ["True","True or False: Francis liked to go to parties a lot"],
+    ["Anchor","Where Francis often slept on the boat"],
+    ["The Santiago","Ship Francis took from Lisbon to India"],
+    ["Ignatius Loyola","Wrote \"The Spiritual Exercises\""],
+    ["Cannonball","What crushed Ignatius's leg"],
+    ["Peter Faber","Who is Francis's first college roommate?"],
+    ["Magdalena","Francis's sister who is a nun"],
+    ["Frivolous","Unworthy of serious attention"],
+    ["Missionary","Member of a religious group sent to educate, help and reform"],
+    ["Catechism","Christian teachings"],
+    ["Nine","Amount of times Francis was \"bled\""],
+    ["Arms","What did Francis tie to atone for his sins?"],
+    ["Paravas","People who Francis helped learn about Catholicism"],
+    ["Don Juan","Who is Francis's father?"],
+    ["Bell","Francis rings this to bring the children to him"]
+  ],
   "Parts of Speech": [
     ["Noun","A noun is a word or word group that is used to name a person, place, thing, or idea."],
     ["Pronoun","A pronoun is a word that is used in place of one or more nouns or pronouns."],
@@ -1188,6 +1218,7 @@ const DECKS = {
 // Class groupings for the start screen. Decks not listed here fall under
 // "Other" so nothing disappears if a name is mistyped.
 const SUBJECTS = { "English": ["Parts of Speech", "Unit 12", "Chapter 1", "Chapter 2", "Chapter 3", "Chapter 4", "Chapter 5", "Chapter 6", "Chapter 7", "Chapter 8", "Chapter 9", "Chapter 10", "Chapter 11", "Chapter 13", "Chapter 14", "Chapter 15"],
+                   "Reading": ["SFSS Crossword"],
                    "Geography": ["Geography 1"],
                    "Science": ["Science 1-1","Science 1-2","Science 1-3","Science 2",
                                "Science 3-1","Science 3-2","Science 3-3 to 3-5",
@@ -1204,7 +1235,8 @@ const classOf = deck =>
   Object.keys(SUBJECTS).find(c => SUBJECTS[c].includes(deck)) || "Other";
 const CLASS_COLOR = { "Geography": "--c-geo", "Science": "--c-sci",
                       "Religion": "--c-rel", "Other": "--c-other",
-                      "English": "--c-eng", "Spanish": "--c-spa" };
+                      "English": "--c-eng", "Spanish": "--c-spa",
+                      "Reading": "--c-read" };
 function tagClass(el, cls){
   el.dataset.class = cls;
   el.style.setProperty("--cc", `var(${CLASS_COLOR[cls] || "--c-other"})`);
