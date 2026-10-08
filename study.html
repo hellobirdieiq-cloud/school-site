@@ -309,6 +309,7 @@
     </div>
     <div class="row" id="tChoices" style="margin:0 0 8px"></div>
     <div class="verdict" id="tVerdict"></div>
+    <p class="small" id="tExplain" style="margin:0 0 8px"></p>
     <p class="row">
       <button class="primary hidden" id="tCheckBtn">Check</button>
       <button class="primary hidden" id="tNextBtn">Next sentence</button>
@@ -1022,7 +1023,7 @@ const DECKS = {
     ["Catechism","Christian teachings"],
     ["Nine","Amount of times Francis was \"bled\""],
     ["Arms","What did Francis tie to atone for his sins?"],
-    ["Paravas","People who Francis helped learn about Catholicism"],
+    ["Parava","People who Francis helped learn about Catholicism"],
     ["Don Juan","Who is Francis's father?"],
     ["Bell","Francis rings this to bring the children to him"]
   ],
@@ -1668,6 +1669,63 @@ const ROSARY_SET = { k: 1, label: "Rosary Quiz", type: "mc", section: "Religion"
   ["What is prayed after each group of Hail Marys?","Glory Be & Fatima Prayer",["Our Father","Apostles' Creed","Glory Be & Fatima Prayer","Hail Holy Queen"]],
   ["How many groups of 10 Hail Marys (decades) are in the circle?","5",["3","4","5","10"]],
 ]};
+// SFSS Quiz 2: mc entries with the optional extras — [question, correct,
+// [options], hint, explanation]. Word-bank questions are 4-option MC (the
+// site has no word-bank type).
+const SFSS2_SET = { k: 1, label: "SFSS Quiz 2", type: "mc", section: "Reading",
+  sub: "Saint Francis of the Seven Seas — 17 questions", sentences: [
+  ["What happened to Francis's tied arms after 2 days?","The ropes suddenly broke, and his arms healed",
+    ["His friends cut the ropes with a knife","The ropes suddenly broke, and his arms healed","A doctor had to cut off one arm","Ignatius untied the ropes"],
+    "Nobody could cut the cord.","Page 44: the ropes suddenly broke, and his arms healed as if by a miracle."],
+  ["What did the crab bring back to Francis?","His crucifix",
+    ["His prayer book","His bell","His crucifix","His shoe"],
+    "CRab brings the CRoss.","Page 77: a wave knocked his crucifix into the sea, and the next day a crab carried it out in its claw."],
+  ["A woman who was about to have a baby was dying. What happened after Francis baptized her family?","She got well again, and her baby was born",
+    ["She died, but the baby lived","She got well again, and her baby was born","She moved to Goa","Nothing changed"],
+    "The mom did not die.","Page 65: the woman became well again, and her baby was born. The whole village became Christian."],
+  ["Who is Miguel?","Francis's oldest brother",
+    ["Francis's priest teacher","Francis's oldest brother","Francis's college roommate","The King of Navarre"],
+    "Think family.","Miguel is the oldest brother. He fought Spain as a guerilla and became head of the family."],
+  ["Who is Juan?","Francis's second brother, who wanted to be a soldier",
+    ["Francis's father","Francis's second brother, who wanted to be a soldier","The ship's doctor","A pearl fisher"],
+    "No \"Don\" in front of his name.","Juan is the second brother. He wanted to be a soldier. Don Juan is the dad."],
+  ["Who is Don Martin?","A priest who was Francis's cousin and teacher",
+    ["A priest who was Francis's cousin and teacher","Francis's father","A Spanish soldier","The governor of India"],
+    "He's a priest.","Don Martin is a priest, Francis's cousin and teacher. He baptized Francis as a baby."],
+  ["Who was Francis's SECOND college roommate?","Ignatius Loyola",
+    ["Peter Fabre","Miguel","Ignatius Loyola","Fausto Rodriguez"],
+    "The limping soldier.","Peter Fabre was first. Then Ignatius Loyola moved in as the second roommate (pages 40-41)."],
+  ["What question made Francis change his life?","\"What would it profit me to gain the whole world, if I lose my own soul?\"",
+    ["\"Who will pay my tailor?\"","\"What would it profit me to gain the whole world, if I lose my own soul?\"","\"When can I go home to Navarre?\"","\"Why does Peter study so hard?\""],
+    "Ignatius helped him ask it.","Page 43: talking with Ignatius made Francis ask this question. Then he decided to follow Ignatius in the service of God."],
+  ["Which 2 events are the 2 miracles?","His arms healing and the crab bringing back the crucifix",
+    ["The castle being torn down and Dad dying","His arms healing and the crab bringing back the crucifix","Walking 500 miles and meeting the Pope","Miguel escaping and the brothers coming home"],
+    "Arms and Crab.","Miracle 1 (page 44): the ropes broke and his arms healed. Miracle 2 (page 77): a crab brought back his crucifix."],
+  ["Francis cared for a ____ whose body was covered in sores.","leper",
+    ["leper","convert","throng","cassock"],
+    "","Page 47: a leper is a person with leprosy, a sickness that eats away the skin."],
+  ["Francis and his friends wore ____s and wide hats on their walk to Italy.","cassock",
+    ["pilgrimage","cassock","guerilla","missionary"],
+    "","Page 45: a cassock is a long robe that priests wear."],
+  ["The friends planned a ____ to the Holy Land.","pilgrimage",
+    ["throng","leper","pilgrimage","convert"],
+    "","Page 43: a pilgrimage is a trip to a holy place."],
+  ["Miguel and Juan hid in the mountains and fought Spain as ____s.","guerilla",
+    ["missionary","guerilla","cassock","frivolous"],
+    "","Page 22: a guerilla is a fighter who hides and makes surprise attacks."],
+  ["A ____ of beggars crowded the streets of Paris.","throng",
+    ["throng","pilgrimage","leper","convert"],
+    "","Page 30: a throng is a big crowd of people."],
+  ["Peter thought Francis's party life was ____.","frivolous",
+    ["guerilla","missionary","frivolous","cassock"],
+    "","Page 35: frivolous means silly, not serious."],
+  ["Three students became ____s and followed Ignatius.","convert",
+    ["convert","leper","throng","pilgrimage"],
+    "","Page 40: a convert is a person who changes their beliefs. Spelled with a T, not \"convent.\""],
+  ["Francis went to India as a ____ to teach people about God.","missionary",
+    ["frivolous","cassock","guerilla","missionary"],
+    "","Page 49: a missionary is someone sent far away to teach and help people."],
+]};
 // ---------- END TAP QUIZ DATA ----------
 
 
@@ -1958,6 +2016,7 @@ function buildQuick(){
     if(cls === "Geography") grid.appendChild(makeMapBtn());
     FLIPCARDS.filter(f => f.section === cls).forEach(f => grid.appendChild(makeFlipBtn(f)));
     if(cls === "Religion") grid.appendChild(makeTapBtn(ROSARY_SET));
+    if(cls === "Reading") grid.appendChild(makeTapBtn(SFSS2_SET));
     if(cls === "Religion" && PRAYERS.length){
       // Religion splits in two: flashcards/quizzes up top, prayers below
       const det = grid.parentElement;
@@ -3116,6 +3175,7 @@ function tChooseHints(set){
     ch.appendChild(b);
   });
   $("tVerdict").textContent = ""; $("tVerdict").className = "verdict";
+  $("tExplain").textContent = "";
   $("tNextBtn").classList.add("hidden");
   $("tCheckBtn").classList.add("hidden");
   window.scrollTo(0, 0);
@@ -3180,7 +3240,8 @@ function tRender(){
   $("tCheckBtn").disabled = true;
   const ch = $("tChoices"); ch.innerHTML = "";
   if(mc){
-    // per-question fixed options, shuffled each time; graded by tClassify
+    // per-question fixed options, shuffled each time; graded by tClassify.
+    // optional extras: item[3] = hint (tap to show), item[4] = explanation
     const item = tItem();
     shuffle([...item[2]]).forEach(o => {
       const b = document.createElement("button");
@@ -3188,6 +3249,13 @@ function tRender(){
       b.onclick = () => tClassify(o, b);
       ch.appendChild(b);
     });
+    if(item[3]){
+      const hb = document.createElement("button");
+      hb.className = "hidebtn"; hb.textContent = "Hint";
+      hb.onclick = () => { $("tHint").textContent = "Hint: " + item[3]; };
+      $("tHint").appendChild(document.createTextNode(" "));
+      $("tHint").appendChild(hb);
+    }
   } else if(classify){
     const opts = TQ.hints
       ? [["DEM","points 👉"], ["REL","connects 🔗"], ["INTER","question ❓"]]
@@ -3202,6 +3270,7 @@ function tRender(){
     });
   }
   $("tVerdict").textContent = ""; $("tVerdict").className = "verdict";
+  $("tExplain").textContent = "";
   $("tNextBtn").classList.add("hidden");
 }
 function tClassify(picked, btn){
@@ -3215,6 +3284,8 @@ function tClassify(picked, btn){
   if(!right) btns.find(b => b.dataset.t === answer).classList.add("right");
   if(right){ TQ.right++; $("tVerdict").textContent = "Correct!"; $("tVerdict").classList.add("ok"); }
   else { $("tVerdict").textContent = "Not quite. The right one is marked green."; $("tVerdict").classList.add("bad"); }
+  const expl = tItem()[4];
+  if(expl) $("tExplain").textContent = expl;   // mc extras: shown right or wrong
   TQ.sess.right = TQ.right; TQ.sess.answered = TQ.i + 1;
   TQ.sess.sentences.push({ n: TQ.order[TQ.i] + 1, text, right, picked });
   TQ.sess.finished = TQ.i + 1 >= TQ.order.length;
