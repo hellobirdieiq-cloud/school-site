@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Rosary Study Quiz</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: "Comic Sans MS", "Chalkboard SE", "Segoe UI", Arial, sans-serif;
+    background: linear-gradient(160deg, #6c5ce7 0%, #a29bfe 45%, #74b9ff 100%);
+    min-height: 100vh; padding: 16px; color: #2d3436;
+  }
+  .card {
+    max-width: 680px; margin: 0 auto; background: #fffdf7;
+    border-radius: 24px; padding: 24px 20px 28px;
+    box-shadow: 0 10px 30px rgba(0,0,0,.25);
+  }
+  h1 { font-size: 34px; text-align: center; color: #6c5ce7; margin-bottom: 6px; }
+  .sub { text-align: center; font-size: 20px; margin-bottom: 20px; }
+  .bigbtn {
+    display: block; width: 100%; border: none; cursor: pointer;
+    font: inherit; font-size: 26px; font-weight: bold; color: #fff;
+    padding: 22px 16px; border-radius: 18px; margin: 14px 0;
+    box-shadow: 0 5px 0 rgba(0,0,0,.18);
+  }
+  .bigbtn:active { transform: translateY(3px); box-shadow: 0 2px 0 rgba(0,0,0,.18); }
+  .r1btn { background: #e17055; }
+  .r2btn { background: #00b894; }
+  .progressWrap { margin: 4px 0 16px; }
+  .ptext { font-size: 18px; font-weight: bold; margin-bottom: 6px; color: #636e72; }
+  .pbar { height: 18px; background: #dfe6e9; border-radius: 999px; overflow: hidden; }
+  .pbar > div { height: 100%; width: 0; background: linear-gradient(90deg, #fdcb6e, #e17055); transition: width .3s; }
+  .question { font-size: 26px; line-height: 1.35; margin-bottom: 18px; font-weight: bold; }
+  .choice {
+    display: block; width: 100%; text-align: left; cursor: pointer;
+    font: inherit; font-size: 22px; font-weight: bold; color: #2d3436;
+    background: #fff; border: 4px solid #a29bfe; border-radius: 16px;
+    padding: 16px 14px; margin: 10px 0; min-height: 56px;
+  }
+  .choice:not(:disabled):hover { background: #f1efff; }
+  .choice.good { background: #c8f7dc; border-color: #00b894; }
+  .choice.bad { background: #ffd4d0; border-color: #d63031; }
+  .choice:disabled { cursor: default; }
+  input[type=text] {
+    width: 100%; font: inherit; font-size: 26px; padding: 16px 14px;
+    border: 4px solid #74b9ff; border-radius: 16px; margin-bottom: 14px;
+  }
+  input[type=text]:disabled { background: #f0f0f0; }
+  .verdict { font-size: 28px; font-weight: bold; min-height: 36px; margin: 10px 0; }
+  .verdict.ok { color: #00b894; }
+  .verdict.no { color: #d63031; }
+  .showanswer { font-size: 32px; font-weight: bold; color: #00b894; margin: 8px 0 4px; }
+  .navbtn {
+    display: block; width: 100%; border: none; cursor: pointer;
+    font: inherit; font-size: 24px; font-weight: bold; color: #fff;
+    background: #0984e3; padding: 18px 16px; border-radius: 16px; margin-top: 14px;
+    box-shadow: 0 5px 0 rgba(0,0,0,.18);
+  }
+  .navbtn:active { transform: translateY(3px); box-shadow: 0 2px 0 rgba(0,0,0,.18); }
+  .navbtn.alt { background: #e17055; }
+  .navbtn.plain { background: #636e72; }
+  .score { font-size: 56px; text-align: center; font-weight: bold; color: #6c5ce7; margin: 14px 0; }
+  .cheer { font-size: 40px; text-align: center; margin-bottom: 8px; }
+  .hidden { display: none; }
+</style>
+</head>
+<body>
+<div class="card">
+
+  <div id="start">
+    <h1>📿 Rosary Study Quiz 📿</h1>
+    <p class="sub">Pick a round and do your best!</p>
+    <button class="bigbtn r1btn" id="startR1">Round 1: Pick It</button>
+    <button class="bigbtn r2btn" id="startR2">Round 2: Write It</button>
+  </div>
+
+  <div id="quiz" class="hidden">
+    <div class="progressWrap">
+      <div class="ptext" id="ptext"></div>
+      <div class="pbar"><div id="pfill"></div></div>
+    </div>
+    <div class="question" id="qtext"></div>
+    <div id="choices"></div>
+    <div id="typeArea" class="hidden">
+      <input type="text" id="typeBox" spellcheck="false" autocomplete="off"
+             autocorrect="off" autocapitalize="off">
+      <button class="navbtn" id="checkBtn">Check</button>
+    </div>
+    <div class="verdict" id="verdict"></div>
+    <div class="showanswer" id="showAnswer"></div>
+    <button class="navbtn hidden" id="nextBtn">Next ➜</button>
+  </div>
+
+  <div id="end" class="hidden">
+    <div class="cheer" id="cheer"></div>
+    <h1>All done!</h1>
+    <div class="score" id="scoreText"></div>
+    <button class="navbtn alt hidden" id="retryBtn">Retry Missed</button>
+    <button class="navbtn plain" id="homeBtn">Back to Start</button>
+  </div>
+
+</div>
+<script>
+"use strict";
+
+/* ---------------- ROUND 1: PICK IT ---------------- */
+const R1 = [
+  { q: "These mysteries are about Mary's joys with Jesus as a child",
+    c: ["Joyful", "Luminous", "Glorious", "Sorrowful"], a: "Joyful" },
+  { q: "What date is The Feast of Our Lady of the Rosary?",
+    c: ["7 May", "25 December", "7 October", "31 October"], a: "7 October" },
+  { q: "These mysteries are about Jesus's suffering and death on the cross",
+    c: ["Sorrowful", "Glorious", "Luminous", "Joyful"], a: "Sorrowful" },
+  { q: "These mysteries are about Jesus' resurrection and Ascension into heaven, and Mary's Assumption and Coronation",
+    c: ["Joyful", "Luminous", "Glorious", "Sorrowful"], a: "Glorious" },
+  { q: "These mysteries are about the preaching, miracles and ministry of Jesus.",
+    c: ["Glorious", "Luminous", "Sorrowful", "Joyful"], a: "Luminous" },
+  { q: "How many Hail Mary prayers are in a decade of the Rosary?",
+    c: ["10", "15", "100", "50"], a: "10" },
+  { q: "How many different categories of mysteries are there in the rosary?",
+    c: ["Four", "Ten", "Five", "Six"], a: "Four" },
+  { q: "How many mysteries are prayed in one Rosary?",
+    c: ["28", "8", "6", "5"], a: "5" },
+  { q: "How many mysteries of the rosary are there in total?",
+    c: ["20", "15", "30", "4"], a: "20" },
+  { q: "When is the month of the Holy Rosary?",
+    c: ["September", "November", "October"], a: "October" },
+  { q: "What Mysteries are prayed on Monday and Saturday",
+    c: ["Sorrowful Mysteries", "Joyful Mysteries", "Luminous Mysteries", "Glorious Mysteries"], a: "Joyful Mysteries" },
+  { q: "Which set of Mysteries are prayed on Tuesdays and Fridays?",
+    c: ["Luminous", "Glorious", "Joyful", "Sorrowful"], a: "Sorrowful" },
+  { q: "What Mysteries are prayed on Wednesday and Sunday",
+    c: ["Glorious Mysteries", "Luminous Mysteries", "Joyful Mysteries", "Sorrowful Mysteries"], a: "Glorious Mysteries" },
+  { q: "Which mysteries are prayed on Thursday?",
+    c: ["Luminous", "Sorrowful", "Glorious", "Joyful"], a: "Luminous" },
+  { q: "The very last thing prayed on the Rosary on the medal bead is the:",
+    c: ["Nicene Creed", "Our Father", "Hail Holy Queen", "Hail Mary"], a: "Hail Holy Queen" },
+  { q: "Who instituted the Luminous Mysteries?",
+    c: ["St. Francis", "Pope Benedict", "Pope Francis", "St. Pope John Paul II"], a: "St. Pope John Paul II" },
+  { q: "Mary gave the Rosary to ____",
+    c: ["St. Padre Pio", "St. Therese of Lisieux", "St. Dominic", "St. Louis de Montfort"], a: "St. Dominic" },
+  { q: "This prayer is prayed on the crucifix or cross of a Rosary:",
+    c: ["The Our Father", "The Glory Be", "The Hail Holy Queen", "The Apostles' Creed"], a: "The Apostles' Creed" },
+  { q: "Who do we honor when we pray the Rosary?",
+    c: ["The Saints", "The angels", "St. Dominic", "Mother Mary"], a: "Mother Mary" },
+  { q: "Whose life do we meditate on while praying the rosary?",
+    c: ["The angels", "St. Dominic", "Mother Mary", "Jesus"], a: "Jesus" },
+  { q: "What year were the Luminous Mysteries instituted?",
+    c: ["1999", "2004", "2006", "2002"], a: "2002" },
+  { q: "What do you pray first when you start the Rosary?",
+    c: ["Hail Mary", "Sign of the Cross", "Our Father", "Glory Be"], a: "Sign of the Cross" },
+  { q: "Which comes right after the Sign of the Cross?",
+    c: ["Our Father", "Hail Mary", "Apostles' Creed", "Glory Be"], a: "Apostles' Creed" },
+  { q: "How many Hail Marys are prayed on the beads near the cross, before the circle?",
+    c: ["1", "3", "5", "10"], a: "3" },
+  { q: "What prayer is said on the big single beads?",
+    c: ["Hail Mary", "Glory Be", "Our Father", "Apostles' Creed"], a: "Our Father" },
+  { q: "What prayer is said on the small beads?",
+    c: ["Our Father", "Hail Mary", "Hail Holy Queen", "Glory Be"], a: "Hail Mary" },
+  { q: "What is prayed after each group of Hail Marys?",
+    c: ["Our Father", "Apostles' Creed", "Glory Be & Fatima Prayer", "Hail Holy Queen"], a: "Glory Be & Fatima Prayer" },
+  { q: "How many groups of 10 Hail Marys (decades) are in the circle?",
+    c: ["3", "4", "5", "10"], a: "5" },
+  { q: "Which mysteries did St. Pope John Paul II add to the Rosary?",
+    c: ["Joyful", "Sorrowful", "Luminous", "Glorious"], a: "Luminous" },
+];
+
+/* ---------------- ROUND 2: WRITE IT ---------------- */
+const R2 = [
+  { q: "On the cross, the FIRST prayer is the ____.", acc: ["Sign of the Cross"] },
+  { q: "On the cross, the prayer right after that is the ____.", acc: ["Apostles' Creed"] },
+  { q: "On the big single beads we pray the ____.", acc: ["Our Father", "Lord's Prayer"] },
+  { q: "On the small beads we pray the ____.", acc: ["Hail Mary"] },
+  { q: "After each decade we pray the Glory Be and the ____.", acc: ["Fatima Prayer", "Fatima"] },
+  { q: "On the center piece at the end we pray the ____.", acc: ["Hail Holy Queen"] },
+  { q: "Mary gifted the rosary to St. ____.", acc: ["Dominic"] },
+  { q: "The ____ mysteries were instituted by St. John Paul II.", acc: ["Luminous"] },
+  { q: "When reciting the ____ mysteries, we reflect on Mary's joy with Jesus as a child.", acc: ["Joyful"] },
+  { q: "When reciting the ____ mysteries, we reflect on Jesus' resurrection and Ascension into heaven, and Mary's Assumption and Coronation.", acc: ["Glorious"] },
+  { q: "When reciting the ____ mysteries, we reflect on Christ's passion and death on the cross.", acc: ["Sorrowful"] },
+  { q: "When reciting the ____ mysteries, we reflect on important moments in Jesus' ministry.", acc: ["Luminous"] },
+  { q: "Who do we honor when we pray the rosary?", acc: ["Mary", "Mother Mary", "Blessed Mother", "Virgin Mary", "Blessed Virgin Mary"] },
+  { q: "Whose life do we meditate upon while we pray the rosary?", acc: ["Jesus", "Jesus Christ"] },
+  { q: "What year were the Luminous Mysteries instituted?", acc: ["2002"] },
+  { q: "What is the date of the Feast of Our Lady of the Rosary? (month and day only)", acc: ["October 7", "7 October", "Oct 7", "October 7th", "10/7"] },
+  { q: "There are ____ main mysteries of the rosary.", acc: ["4", "four"] },
+  { q: "There are 4 main mysteries of the rosary and ____ additional mysteries within each of them.", acc: ["5", "five"] },
+  { q: "A decade of the rosary has ____ Hail Mary prayers.", acc: ["10", "ten"] },
+  { q: "How many decades are there in one full rosary?", acc: ["5", "five"] },
+  { q: "Mondays and Saturdays we pray the ____ mysteries.", acc: ["Joyful"] },
+  { q: "Tuesdays and Fridays we pray the ____ mysteries.", acc: ["Sorrowful"] },
+  { q: "Wednesdays and Sundays we pray the ____ mysteries.", acc: ["Glorious"] },
+  { q: "Thursdays we pray the ____ mysteries.", acc: ["Luminous"] },
+];
+
+/* One normalizer, applied to BOTH the typed answer and every accepted answer. */
+function normalize(s) {
+  return String(s)
+    .toLowerCase()
+    .replace(/&/g, "and")
+    .normalize("NFD").replace(/[̀-ͯ]/g, "")   // accents: Fátima -> fatima
+    .replace(/[.,'‘’-]/g, "")                 // periods, commas, apostrophes, hyphens
+    .replace(/\b(the|st|saint|mysteries|mystery|prayer)\b/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+/* ---------------- quiz engine ---------------- */
+const $ = id => document.getElementById(id);
+let mode = 1;          // 1 = Pick It, 2 = Write It
+let list = [];         // the questions in play (full round or retry-missed)
+let i = 0, score = 0, missed = [];
+
+function show(id) {
+  ["start", "quiz", "end"].forEach(s => $(s).classList.toggle("hidden", s !== id));
+}
+function startRound(m, questions) {
+  mode = m; list = questions; i = 0; score = 0; missed = [];
+  show("quiz");
+  render();
+}
+function render() {
+  const item = list[i];
+  $("ptext").textContent = "Question " + (i + 1) + " of " + list.length;
+  $("pfill").style.width = (i / list.length * 100) + "%";
+  $("qtext").textContent = item.q;
+  $("verdict").textContent = ""; $("verdict").className = "verdict";
+  $("showAnswer").textContent = "";
+  $("nextBtn").classList.add("hidden");
+  const box = $("choices"); box.innerHTML = "";
+  if (mode === 1) {
+    $("typeArea").classList.add("hidden");
+    item.c.forEach(choice => {
+      const b = document.createElement("button");
+      b.className = "choice"; b.textContent = choice;
+      b.onclick = () => pick(choice, b);
+      box.appendChild(b);
+    });
+  } else {
+    $("typeArea").classList.remove("hidden");
+    $("typeBox").value = ""; $("typeBox").disabled = false;
+    $("checkBtn").disabled = false;
+    $("typeBox").focus();
+  }
+}
+function pick(choice, btn) {
+  const item = list[i];
+  const buttons = Array.from($("choices").children);
+  buttons.forEach(b => { b.disabled = true; });          // lock after one click
+  const right = choice === item.a;
+  if (right) { btn.classList.add("good"); score++; }
+  else {
+    btn.classList.add("bad");
+    missed.push(item);
+    buttons.find(b => b.textContent === item.a).classList.add("good");
+  }
+  $("verdict").textContent = right ? "Correct!" : "Not quite!";
+  $("verdict").classList.add(right ? "ok" : "no");
+  $("nextBtn").classList.remove("hidden");
+  $("nextBtn").focus();
+}
+function check() {
+  /* NOTE: Next is focused on the next tick, so the Enter that submits the
+     answer can't also "click" the Next button with its key-up. */
+  const item = list[i];
+  if ($("typeBox").disabled) return;
+  const typed = $("typeBox").value;
+  if (!typed.trim()) return;
+  $("typeBox").disabled = true; $("checkBtn").disabled = true;   // lock the box
+  const right = item.acc.some(a => normalize(a) === normalize(typed));
+  if (right) {
+    score++;
+    $("verdict").textContent = "Correct!";
+    $("verdict").classList.add("ok");
+  } else {
+    missed.push(item);
+    $("verdict").textContent = "Not quite! The answer is:";
+    $("verdict").classList.add("no");
+    $("showAnswer").textContent = item.acc[0];
+  }
+  $("nextBtn").classList.remove("hidden");
+  setTimeout(() => $("nextBtn").focus(), 0);
+}
+function next() {
+  i++;
+  if (i < list.length) { render(); return; }
+  $("pfill").style.width = "100%";
+  $("scoreText").textContent = score + " / " + list.length;
+  $("cheer").textContent = missed.length === 0 ? "🌟🎉🌟" : "⭐ Great try! ⭐";
+  $("retryBtn").classList.toggle("hidden", missed.length === 0);
+  show("end");
+}
+
+$("startR1").onclick = () => startRound(1, R1);
+$("startR2").onclick = () => startRound(2, R2);
+$("nextBtn").onclick = next;
+$("checkBtn").onclick = check;
+$("typeBox").addEventListener("keydown", e => { if (e.key === "Enter") check(); });
+$("retryBtn").onclick = () => startRound(mode, missed);
+$("homeBtn").onclick = () => show("start");
+</script>
+</body>
+</html>
