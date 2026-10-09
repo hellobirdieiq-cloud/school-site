@@ -1214,6 +1214,19 @@ const DECKS = {
     ["Hay","there is / there are"],
     ["No hay","there isn't / there aren't"],
     ["Me duele...","my ___ hurts"]
+  ],
+  "Weather": [
+    ["Hace sol","It's sunny"],
+    ["Hace frío","It's cold"],
+    ["Hace calor","It's hot"],
+    ["Hace viento","It's windy"],
+    ["Está nublado","It's cloudy"],
+    ["Está lloviendo","It's raining"],
+    ["Está nevando","It's snowing"],
+    ["Está tormentoso","It's stormy"],
+    ["Hay tormenta","There's a storm"],
+    ["Hay sol","There is sun (it's sunny)"],
+    ["Hay neblina","It's foggy"]
   ]
 };
 // Class groupings for the start screen. Decks not listed here fall under
@@ -1227,7 +1240,7 @@ const SUBJECTS = { "English": ["Parts of Speech", "Unit 12", "Chapter 1", "Chapt
                    "Religion": ["Religion 1", "Religion Chapter 1 Prayer Quiz", "Steps to Sainthood", "Sainthood Process Quiz"],
                    "Spanish": ["Numbers 1-9", "Numbers 10-19", "Numbers 20-29", "Numbers 30-100",
                                "Days of the Week", "Months of the Year", "Colors",
-                               "Classroom Words (P-6)", "Body Words (P-5)", "Phrases"] };
+                               "Classroom Words (P-6)", "Body Words (P-5)", "Phrases", "Weather"] };
 // English activities: five 20-sentence sets of the nouns quiz (nouns-data.json)
 const NOUN_SETS = [1, 2, 3, 4, 5].map(k =>
   ({ k, label: `Nouns Quiz ${k}`, from: (k - 1) * 20 + 1, to: k * 20,
@@ -2323,6 +2336,15 @@ function normAns(s){
   return s.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "")
     .replace(/[()\-–—'’"“”.,:;!?]/g, " ").replace(/\s+/g, " ").trim();
 }
+// Answer twins: phrases that mean the same thing, accepted for each other
+// when the ENGLISH prompt is shown (pick-the-word and type-the-word modes).
+const ANSWER_EQUIV = {
+  "Weather": [["Hace sol", "Hay sol"], ["Está tormentoso", "Hay tormenta"]],
+};
+function equivSet(deck, word){
+  const g = (ANSWER_EQUIV[deck] || []).find(x => x.includes(word));
+  return g || [word];
+}
 function acceptableWords(word){
   // "Global Positioning System (GPS)" -> gps AND global positioning system both count
   const set = new Set([normAns(word)]);
@@ -2353,7 +2375,8 @@ function checkTyped(correctIdx){
   const card = DECKS[state.deck][correctIdx];
   const actual = state.mode === "typeWord" ? card[0] : card[1];
   inp.disabled = true; $("checkBtn").disabled = true;
-  if(state.mode === "typeWord" && acceptableWords(card[0]).has(normAns(typed))){
+  if(state.mode === "typeWord" &&
+     equivSet(state.deck, card[0]).some(w => acceptableWords(w).has(normAns(typed)))){
     recordTyped(correctIdx, true, typed, actual, "auto", secs);
     $("verdict").textContent = "Correct!"; $("verdict").classList.add("ok");
     showNextBtn();
@@ -2384,16 +2407,19 @@ function answer(picked, correct, btn){
   btns.forEach(b => b.disabled = true);
   // store what he actually saw: prompt + the chosen/correct sides
   const askDef = state.mode === "def2word";
+  // with the meaning shown, an answer twin (equivSet) counts as correct too
+  const right = picked === correct ||
+    (askDef && equivSet(state.deck, DECKS[state.deck][correct][0]).includes(DECKS[state.deck][picked][0]));
   session.answers.push({ word: DECKS[state.deck][correct][0],
-    right: picked === correct, picked: DECKS[state.deck][picked][0], secs,
+    right, picked: DECKS[state.deck][picked][0], secs,
     prompt: askDef ? DECKS[state.deck][correct][1] : DECKS[state.deck][correct][0],
     pickedShown: askDef ? DECKS[state.deck][picked][0] : DECKS[state.deck][picked][1],
     correctShown: askDef ? DECKS[state.deck][correct][0] : DECKS[state.deck][correct][1] });
-  if(picked === correct) session.right++;
+  if(right) session.right++;
   saveSession();
   const correctBtn = btns.find(b => +b.dataset.k === correct);
   correctBtn.classList.add("right");
-  if (picked === correct){ state.right++; $("verdict").textContent = "Correct!"; $("verdict").classList.add("ok"); }
+  if (right){ btn.classList.add("right"); state.right++; $("verdict").textContent = "Correct!"; $("verdict").classList.add("ok"); }
   else { btn.classList.add("wrong"); state.missed.push(correct); $("verdict").textContent = "Not quite. The right one is marked green."; $("verdict").classList.add("bad"); }
   $("nextBtn").textContent = state.i+1 < state.queue.length ? "Next" : "See my score";
   $("nextBtn").classList.remove("hidden"); $("nextBtn").focus();
