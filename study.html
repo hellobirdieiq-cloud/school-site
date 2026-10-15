@@ -2488,8 +2488,13 @@ function answer(picked, correct, btn){
   // store what he actually saw: prompt + the chosen/correct sides
   const askDef = state.mode === "def2word";
   // with the meaning shown, an answer twin (equivSet) counts as correct too
+  // reverse mode (word shown, meanings picked): when a deck repeats an answer
+  // word, ANY of that word's meanings is a fair pick — grade by answer text
+  const sameWord = DECKS[state.deck][picked][0].trim().toLowerCase() ===
+    DECKS[state.deck][correct][0].trim().toLowerCase();
   const right = picked === correct ||
-    (askDef && equivSet(state.deck, DECKS[state.deck][correct][0]).includes(DECKS[state.deck][picked][0]));
+    (askDef && equivSet(state.deck, DECKS[state.deck][correct][0]).includes(DECKS[state.deck][picked][0])) ||
+    (!askDef && sameWord);
   session.answers.push({ word: DECKS[state.deck][correct][0],
     right, picked: DECKS[state.deck][picked][0], secs,
     prompt: askDef ? DECKS[state.deck][correct][1] : DECKS[state.deck][correct][0],
