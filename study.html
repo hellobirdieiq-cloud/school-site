@@ -1802,6 +1802,47 @@ const SFSS2_SET = { k: 1, label: "SFSS Quiz 2", type: "mc", section: "Reading",
     "","Page 49: a missionary is someone sent far away to teach and help people."],
 ]};
 // Unit 5 In Context: excerpt questions with fixed options (mc format)
+// Nativity Quiz: mc entries [question, correct, [options]] — options are
+// shuffled at every render by the engine
+const NATIVITY_SET = { k: 1, label: "Nativity Quiz", type: "mc", section: "Religion",
+  sub: "the Joyful Mysteries & Christmas — 18 questions", sentences: [
+  ["____ is the 1st Joyful Mystery, when the angel Gabriel appeared to Mary","Annunciation",
+    ["Finding Jesus","Presentation","Annunciation","Nativity"]],
+  ["The Mystery that describes when the Archangel Gabriel visited Mary to tell her the good news is the ____","Annunciation",
+    ["Visitation","Annunciation","Proclamation of the Kingdom","Ascension"]],
+  ["which is the 4th joyful mystery when Simeon spoke to Mary?","Presentation",
+    ["Annunciation","Celebrations","Visitation","Presentation"]],
+  ["3rd Joyful Mystery","Nativity (birth of Jesus)",
+    ["Nativity (birth of Jesus)","Annunciation","Transfiguration","Ressurection"]],
+  ["The Nativity was when Jesus was born in a stable in Bethlehem ( Christmas)","True",
+    ["True","False"]],
+  ["In the joyful mysteries, where did Mary and Joseph find Jesus when he went missing?","at a temple talking to men, with knowledge only God has",
+    ["he was mining in a mine shaft while talking about the faith","at a temple talking to men, with knowledge only God has","at the stable where he was born","playing with animals at a fair"]],
+  ["Which angel appeared to Mary?","Gabriel",
+    ["Gabriel","Unnamed","Michael","Lucifer"]],
+  ["This mystery is when Mary and Joseph brought Jesus to the Temple to present Him to God, according to Jewish custom.","The Presentation in the Temple",
+    ["The Presentation in the Temple","The Crowning with Thorns","The Wedding at Cana","The Finding in the Temple"]],
+  ["The age of reason in the Jewish faith, when Jesus was a child","12",
+    ["12","7","6","16"]],
+  ["Simeon told Mary that a sword would pierce her soul.","True",
+    ["True","False"]],
+  ["Who was told that he would not die until he saw Jesus?","Simeon",
+    ["Zachariah","Azriel","Simeon","Bartholomew"]],
+  ["The second Joyful Mystery when Elizabeth greets Mary","Visitation",
+    ["Visitation","Nativity","Assumption","Presentation"]],
+  ["What was the name of the prophetess who saw Jesus at the temple?","Anna",
+    ["Mary","Anna","Judy","Elizabeth"]],
+  ["What was the name of Mary’s cousin, who was also miraculously pregnant?","Elizabeth",
+    ["Elizabeth","Martha","Deborah","Leah"]],
+  ["Betrothed most nearly means","promised to be married",
+    ["divorced","unattached","single","promised to be married"]],
+  ["Who did the angels appear to when Jesus was born?","the sheperds in the field",
+    ["Mary and Joseph","the sheperds in the field","the wise men","the town of Bethlehem"]],
+  ["Mary offered a pidgeon as __ for the sins of the world.","atonement",
+    ["forgiveness","atonement","gift"]],
+  ["A census is","a population count",
+    ["a meeting in Congress","when everyone disagrees","a population count","when everyone agrees"]],
+]};
 const UNIT5CTX_SET = { k: 1, label: "Unit 5 In Context", type: "mc", section: "Reading",
   sub: "The First Men in the Moon — 5 questions", sentences: [
   ["\"There were several amazing forms, with heads reduced to microscopic proportions and blobby bodies . . . And oddest of all, as it seemed to me for the moment, two or three of these weird inhabitants of a subterranean world, a world sheltered by innumerable miles of rock from sun or rain, carried umbrellas in their tentaculate hands—real terrestrial-looking umbrellas!\" — What does \"inhabitants\" mean here?",
@@ -2104,7 +2145,7 @@ function buildQuick(){
     decks.forEach(name => grid.appendChild(makeDeckBtn(name)));
     if(cls === "Geography") grid.appendChild(makeMapBtn());
     FLIPCARDS.filter(f => f.section === cls).forEach(f => grid.appendChild(makeFlipBtn(f)));
-    if(cls === "Religion") grid.appendChild(makeTapBtn(ROSARY_SET));
+    if(cls === "Religion"){ grid.appendChild(makeTapBtn(ROSARY_SET)); grid.appendChild(makeTapBtn(NATIVITY_SET)); }
     if(cls === "Reading"){ grid.appendChild(makeTapBtn(SFSS2_SET)); grid.appendChild(makeTapBtn(UNIT5CTX_SET)); }
     if(cls === "Religion" && PRAYERS.length){
       // Religion splits in two: flashcards/quizzes up top, prayers below
