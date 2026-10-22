@@ -1803,14 +1803,15 @@ const SFSS2_SET = { k: 1, label: "SFSS Quiz 2", type: "mc", section: "Reading",
 ]};
 // Unit 5 In Context: excerpt questions with fixed options (mc format)
 // Adjectives (marks mode): [sentence, [[word, type], ...], legend] where
-// type 1 = single underline, 2 = double underline. Parts kept in worksheet
+// type 1 = single underline, 2 = double underline. Rows kept in worksheet
 // order (ordered: true). a/an/the are never marked, per the directions.
+// ADJ_ROWS holds all 90 worksheet rows; the three quiz sets below filter it
+// by legend so the marking rule never changes inside a quiz.
 const ADJ_LA = "Part A — Tap an adjective once to underline it. Tap the noun it describes twice to double-underline it.";
 const ADJ_LB = "1 underline = adjective · 2 underlines = PROPER adjective. Skip a, an, the.";
 const ADJ_LE = "Tap once to underline each adjective. Skip a, an, the.";
 const ADJ_LW = "Exercise B — Tap each adjective once. Tap each noun it describes twice. Skip a, an, the.";
-const ADJ_SET = { k: 1, label: "Adjectives", type: "marks", section: "English", ordered: true,
-  sub: "underline the adjectives — 90 sentences", sentences: [
+const ADJ_ROWS = [
   ["Heavy rains fell throughout the state.", [["Heavy",1],["rains",2]], ADJ_LA],
   ["Dark clouds covered the sky.", [["Dark",1],["clouds",2]], ADJ_LA],
   ["People awoke to loud claps of thunder.", [["loud",1],["claps",2]], ADJ_LA],
@@ -1901,7 +1902,15 @@ const ADJ_SET = { k: 1, label: "Adjectives", type: "marks", section: "English", 
   ["A sudden gust rocked the boat from side to side.", [["sudden",1]], ADJ_LE],
   ["Ava aimed carefully and made a tricky shot.", [["tricky",1]], ADJ_LE],
   ["The shiny trophy sparkled as the crowd cheered.", [["shiny",1]], ADJ_LE],
-]};
+];
+// filter keeps worksheet order: ADJ_LE rows = Exercise A then Exercise C
+const adjBy = (...legs) => legs.flatMap(l => ADJ_ROWS.filter(r => r[2] === l));
+const ADJ1_SET = { k: 1, label: "Adjectives 1: Find the Adjectives", type: "marks", section: "English",
+  ordered: true, sub: "underline each adjective — 30 sentences", sentences: adjBy(ADJ_LE) };
+const ADJ2_SET = { k: 1, label: "Adjectives 2: Adjective + Noun", type: "marks", section: "English",
+  ordered: true, sub: "adjective + the noun it describes — 40 sentences", sentences: adjBy(ADJ_LA, ADJ_LW) };
+const ADJ3_SET = { k: 1, label: "Adjectives 3: Proper Adjectives", type: "marks", section: "English",
+  ordered: true, sub: "proper adjectives — 20 sentences", sentences: adjBy(ADJ_LB) };
 // Nativity Quiz: mc entries [question, correct, [options]] — options are
 // shuffled at every render by the engine
 const NATIVITY_SET = { k: 1, label: "Nativity Quiz", type: "mc", section: "Religion",
@@ -2239,7 +2248,9 @@ function buildQuick(){
   PRONOUN_SETS.forEach(set => engGrid.appendChild(makeTapBtn(set)));
   CLASSIFY_SETS.forEach(set => engGrid.appendChild(makeTapBtn(set)));
   PA_SETS.forEach(set => engGrid.appendChild(makeTapBtn(set)));
-  engGrid.appendChild(makeTapBtn(ADJ_SET));
+  engGrid.appendChild(makeTapBtn(ADJ1_SET));
+  engGrid.appendChild(makeTapBtn(ADJ2_SET));
+  engGrid.appendChild(makeTapBtn(ADJ3_SET));
   classGroups(Object.keys(DECKS), d => d).forEach(([cls, decks]) => {
     if(cls === "English") return;   // English decks already rendered next to the Nouns quizzes
     const grid = classSection(box, cls);
