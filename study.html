@@ -508,6 +508,9 @@ const DECKS = {
     ["scientific theory","A well-tested explanation for a wide range of observations or experimental results."],
     ["scientific law","A statement that describes what scientists expect to happen every time under a particular set of conditions."]
   ],
+  // placeholder holds the card's spot in the grid (key insertion order);
+  // filled right after this literal with 1-1 + 1-2 + 1-3 combined
+  "Science Chapter 1": [],
   "Science 2": [
     ["cost","A negative result of either taking or not taking an action."],
     ["benefit","A good consequence of taking an action."],
@@ -1291,12 +1294,18 @@ const DECKS = {
     ["Hay neblina","It's foggy"]
   ]
 };
+// Combined chapter deck: all of Science 1-1 + 1-2 + 1-3, cards untouched.
+// Key must be unique ("Chapter 1" is the English vocab deck); the card shows
+// its short name via DECK_LABEL below. The empty placeholder above fixes its
+// position in the Science grid.
+DECKS["Science Chapter 1"] = [
+  ...DECKS["Science 1-1"], ...DECKS["Science 1-2"], ...DECKS["Science 1-3"]];
 // Class groupings for the start screen. Decks not listed here fall under
 // "Other" so nothing disappears if a name is mistyped.
 const SUBJECTS = { "English": ["Parts of Speech", "Unit 12", "Chapter 1", "Chapter 2", "Chapter 3", "Chapter 4", "Chapter 5", "Chapter 6", "Chapter 7", "Chapter 8", "Chapter 9", "Chapter 10", "Chapter 11", "Chapter 13", "Chapter 14", "Chapter 15"],
                    "Reading": ["SFSS Crossword", "Unit 5 Vocab"],
                    "Geography": ["Geography 1"],
-                   "Science": ["Science 1-1","Science 1-2","Science 1-3","Science 2",
+                   "Science": ["Science 1-1","Science 1-2","Science 1-3","Science Chapter 1","Science 2",
                                "Science 3-1","Science 3-2","Science 3-3 to 3-5",
                                "Science 4-1","Science 4-2 + 4-3","Science 4-4","Science All"],
                    "Religion": ["Religion 1", "Religion Chapter 1 Prayer Quiz", "Steps to Sainthood", "Sainthood Process Quiz"],
@@ -1309,6 +1318,9 @@ const NOUN_SETS = [1, 2, 3, 4, 5].map(k =>
      store: `nounsApp_${k}` }));
 const classOf = deck =>
   Object.keys(SUBJECTS).find(c => SUBJECTS[c].includes(deck)) || "Other";
+// Short display names for deck cards whose unique key would be redundant
+// inside their own subject's dropdown.
+const DECK_LABEL = { "Science Chapter 1": "Chapter 1" };
 const CLASS_COLOR = { "Geography": "--c-geo", "Science": "--c-sci",
                       "Religion": "--c-rel", "Other": "--c-other",
                       "English": "--c-eng", "Spanish": "--c-spa",
@@ -2203,7 +2215,7 @@ function makeDeckBtn(name){
   const b = document.createElement("button");
   b.dataset.deck = name;
   tagClass(b, classOf(name));
-  b.innerHTML = `${name}<small>${DECKS[name].length} words</small>`;
+  b.innerHTML = `${DECK_LABEL[name] || name}<small>${DECKS[name].length} words</small>`;
   b.onclick = () => {
     if(settingsOpen()){   // choose this deck for the settings, don't start
       state.deck = name; loadedTest = null;
